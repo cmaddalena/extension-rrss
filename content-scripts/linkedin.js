@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════
-// LINKEDIN AUTOMATION SCRIPT - v16.0 (NATIVE INPUT + ENTER SEND)
+// LINKEDIN AUTOMATION SCRIPT - v16.2 (PRECISE SELECTORS + CONNECT FLOW)
 // ═══════════════════════════════════════════════════════════════════════
 
-console.log('🔷 LinkedIn Automation v16.0 (Native Input) cargado');
+console.log('🔷 LinkedIn Automation v16.2 (Precise Selectors) cargado');
 
 const LinkedInAnalyzer = {
   config: {
@@ -278,6 +278,537 @@ const LinkedInAnalyzer = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
+// 🔍 DETECTAR TIPO DE CONEXIÓN - v16.2
+// ═══════════════════════════════════════════════════════════════════════
+function detectConnectionType() {
+  console.log('🔍 Detectando tipo de conexión (v16.2)...');
+  
+  const result = {
+    connectionDegree: 'unknown',
+    canSendDM: false,
+    canConnect: false,
+    connectInOverflow: false,
+    isMessageLocked: false,
+    alreadyConnected: false,
+    invitationSent: false,
+    availableAction: 'none'
+  };
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 1. Detectar grado de conexión (buscar "· 1º", "· 2º", "· 3º")
+  // ─────────────────────────────────────────────────────────────────
+  const profileHeader = document.querySelector('h1, .text-heading-xlarge');
+  if (profileHeader) {
+    const headerParent = profileHeader.parentElement?.parentElement || document.body;
+    const headerText = headerParent.textContent || '';
+    
+    if (headerText.includes('· 1') || headerText.includes('·1') || headerText.includes('• 1')) {
+      result.connectionDegree = '1st';
+    } else if (headerText.includes('· 2') || headerText.includes('·2') || headerText.includes('• 2')) {
+      result.connectionDegree = '2nd';
+    } else if (headerText.includes('· 3') || headerText.includes('·3') || headerText.includes('• 3')) {
+      result.connectionDegree = '3rd';
+    }
+  }
+  
+  console.log(`   Grado detectado: ${result.connectionDegree}`);
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 2. Buscar botón "Enviar mensaje" directo (sin candado)
+  // ─────────────────────────────────────────────────────────────────
+  const dmButtonSelectors = [
+    'a[href*="/messaging/compose/"]',
+    'button[aria-label*="Enviar mensaje"]',
+    'button[aria-label*="Message"]',
+    '.pvs-profile-actions button.artdeco-button--primary'
+  ];
+  
+  for (const selector of dmButtonSelectors) {
+    const elements = document.querySelectorAll(selector);
+    for (const el of elements) {
+      const text = el.textContent?.toLowerCase() || '';
+      const label = el.getAttribute('aria-label')?.toLowerCase() || '';
+      const href = el.getAttribute('href') || '';
+      
+      const hasLock = el.querySelector('.lock-icon, [type="locked-small"]');
+      const isLocked = label.includes('bloqueado') || label.includes('locked');
+      
+      if (!hasLock && !isLocked && (
+        text.includes('mensaje') || text.includes('message') ||
+        label.includes('mensaje') || label.includes('message') ||
+        href.includes('/messaging/')
+      )) {
+        result.canSendDM = true;
+        console.log('   ✅ Puede enviar DM directo');
+        break;
+      }
+    }
+    if (result.canSendDM) break;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 3. Buscar botón "Conectar" (directo o en overflow)
+  // ─────────────────────────────────────────────────────────────────
+  const connectDirectSelectors = [
+    'button[aria-label*="Conectar"]',
+    'button[aria-label*="Connect"]',
+    'button[aria-label*="Invitar"]'
+  ];
+  
+  for (const selector of connectDirectSelectors) {
+    const btn = document.querySelector(selector);
+    if (btn) {
+      const text = btn.textContent?.toLowerCase() || '';
+      if (text.includes('conectar') || text.includes('connect')) {
+        result.canConnect = true;
+        result.connectInOverflow = false;
+        console.log('   ✅ Botón Conectar visible directamente');
+        break;
+      }
+    }
+  }
+  
+  if (!result.canConnect) {
+    const connectLink = document.querySelector('a[href*="/preload/custom-invite/"]');
+    if (connectLink) {
+      result.canConnect = true;
+      result.connectInOverflow = true;
+      console.log('   ✅ Link Conectar encontrado (en overflow menu)');
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 4. Detectar si mensaje está bloqueado
+  // ─────────────────────────────────────────────────────────────────
+  const lockedSelectors = [
+    'a[aria-label*="bloqueado"]',
+    'a[aria-label*="locked"]',
+    'a[href*="inmail-app-upsell"]',
+    'a[href*="message-locked"]',
+    '[type="locked-small"]'
+  ];
+  
+  for (const selector of lockedSelectors) {
+    if (document.querySelector(selector)) {
+      result.isMessageLocked = true;
+      console.log('   🔒 Mensaje bloqueado (requiere InMail)');
+      break;
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 5. Detectar si ya se envió invitación
+  // ─────────────────────────────────────────────────────────────────
+  const pendingEl = document.querySelector('.invite-sent-msg:not(.hidden), button[aria-label*="Pendiente"]');
+  if (pendingEl && pendingEl.offsetParent !== null) {
+    result.invitationSent = true;
+    console.log('   📨 Invitación ya enviada (pendiente)');
+  }
+  
+  // ─────────────────────────────────────────────────────────────────
+  // 6. Determinar acción disponible
+  // ─────────────────────────────────────────────────────────────────
+  if (result.connectionDegree === '1st' || (result.canSendDM && !result.isMessageLocked)) {
+    result.availableAction = 'dm';
+    result.alreadyConnected = result.connectionDegree === '1st';
+  } else if (result.canConnect && !result.invitationSent) {
+    result.availableAction = 'connect';
+  } else if (result.isMessageLocked) {
+    result.availableAction = 'inmail';
+  } else if (result.invitationSent) {
+    result.availableAction = 'pending';
+  }
+  
+  console.log('📊 Resultado detección:', result);
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📤 ENVIAR SOLICITUD DE CONEXIÓN CON NOTA - v16.2
+// Selectores basados en HTML real de LinkedIn
+// ═══════════════════════════════════════════════════════════════════════
+async function sendConnectionRequest(noteMessage) {
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('📤 ENVIANDO SOLICITUD DE CONEXIÓN (v16.2)');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('📝 Nota:', noteMessage ? noteMessage.substring(0, 50) + '...' : '(sin nota)');
+  
+  // ─────────────────────────────────────────────────────────────────
+  // PASO 1: Buscar y clickear botón/link "Conectar"
+  // ─────────────────────────────────────────────────────────────────
+  console.log('\n[1/4] 🔍 Buscando botón Conectar...');
+  
+  let connectClicked = false;
+  
+  // Opción A: Link con href="/preload/custom-invite/" (nuevo diseño, en menú overflow)
+  const connectLink = document.querySelector('a[href*="/preload/custom-invite/"]');
+  if (connectLink) {
+    console.log('   ✅ Encontrado link de conexión (nuevo diseño)');
+    connectLink.click();
+    connectClicked = true;
+  }
+  
+  // Opción B: Botón directo con aria-label
+  if (!connectClicked) {
+    const connectBtnSelectors = [
+      'button[aria-label*="Conectar"]',
+      'button[aria-label*="Connect"]',
+      'button[aria-label*="Invitar"]',
+      'button[data-action="connect-btn"]'
+    ];
+    
+    for (const selector of connectBtnSelectors) {
+      const btn = document.querySelector(selector);
+      if (btn) {
+        const text = btn.textContent?.toLowerCase() || '';
+        if (text.includes('conectar') || text.includes('connect')) {
+          console.log('   ✅ Encontrado botón Conectar directo');
+          btn.click();
+          connectClicked = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Opción C: Buscar por texto en cualquier elemento clickeable
+  if (!connectClicked) {
+    const allClickables = document.querySelectorAll('button, a[role="menuitem"], div[role="menuitem"]');
+    for (const el of allClickables) {
+      const text = el.textContent?.trim().toLowerCase() || '';
+      if (text === 'conectar' || text === 'connect') {
+        console.log('   ✅ Encontrado elemento Conectar por texto');
+        el.click();
+        connectClicked = true;
+        break;
+      }
+    }
+  }
+  
+  if (!connectClicked) {
+    throw new Error('No se encontró el botón Conectar. ¿El perfil ya está conectado?');
+  }
+  
+  console.log('   ⏳ Esperando modal...');
+  await new Promise(r => setTimeout(r, 2500));
+  
+  // ─────────────────────────────────────────────────────────────────
+  // PASO 2: Detectar el modal "¿Añadir una nota a la invitación?"
+  // ─────────────────────────────────────────────────────────────────
+  console.log('\n[2/4] 🔍 Buscando modal de invitación...');
+  
+  // Modal clásico de LinkedIn
+  const modal = document.querySelector('.artdeco-modal.send-invite, div[role="dialog"], .artdeco-modal');
+  
+  if (!modal) {
+    console.log('   ⚠️ No apareció modal. Verificando si se envió directamente...');
+    await new Promise(r => setTimeout(r, 1500));
+    
+    const pendingBtn = document.querySelector('button[aria-label*="Pendiente"], .invite-sent-msg:not(.hidden)');
+    if (pendingBtn) {
+      console.log('   ✅ Invitación enviada directamente (sin opción de nota)');
+      return { success: true, action: 'connection_sent', withNote: false };
+    }
+    
+    throw new Error('No apareció el modal de invitación');
+  }
+  
+  console.log('   ✅ Modal encontrado');
+  
+  // ─────────────────────────────────────────────────────────────────
+  // PASO 3: Añadir nota si hay mensaje
+  // ─────────────────────────────────────────────────────────────────
+  console.log('\n[3/4] 📝 Procesando nota...');
+  
+  if (noteMessage && noteMessage.trim().length > 0) {
+    // Buscar botón "Añadir una nota" por aria-label o texto
+    let addNoteBtn = modal.querySelector('button[aria-label*="Añadir una nota"], button[aria-label*="Add a note"]');
+    
+    if (!addNoteBtn) {
+      const buttons = modal.querySelectorAll('button.artdeco-button--secondary, button.artdeco-button--muted');
+      for (const btn of buttons) {
+        const text = btn.textContent?.toLowerCase() || '';
+        if (text.includes('añadir') && text.includes('nota')) {
+          addNoteBtn = btn;
+          break;
+        }
+        if (text.includes('add') && text.includes('note')) {
+          addNoteBtn = btn;
+          break;
+        }
+      }
+    }
+    
+    if (addNoteBtn) {
+      console.log('   📝 Clickeando "Añadir una nota"...');
+      addNoteBtn.click();
+      await new Promise(r => setTimeout(r, 1500));
+      
+      // Buscar textarea con selectores específicos del HTML
+      const textarea = document.querySelector(
+        'textarea#custom-message, ' +
+        'textarea.connect-button-send-invite__custom-message, ' +
+        'textarea[name="message"]'
+      );
+      
+      if (textarea) {
+        console.log('   ✍️ Escribiendo nota...');
+        textarea.focus();
+        await new Promise(r => setTimeout(r, 200));
+        
+        // Truncar a 300 caracteres (límite de LinkedIn)
+        const noteText = noteMessage.substring(0, 300);
+        textarea.value = noteText;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        console.log(`   ✅ Nota escrita (${noteText.length}/300 chars)`);
+        await new Promise(r => setTimeout(r, 500));
+      } else {
+        console.log('   ⚠️ No encontré textarea para la nota');
+      }
+    } else {
+      console.log('   ⚠️ No encontré botón "Añadir nota"');
+    }
+  } else {
+    console.log('   ℹ️ Sin nota, enviando directamente');
+  }
+  
+  // ─────────────────────────────────────────────────────────────────
+  // PASO 4: Clickear botón Enviar
+  // ─────────────────────────────────────────────────────────────────
+  console.log('\n[4/4] 📤 Enviando invitación...');
+  
+  // Buscar modal activo
+  const activeModal = document.querySelector(
+    '.artdeco-modal:not(.artdeco-modal--hidden), ' +
+    'div[role="dialog"]:not([aria-hidden="true"])'
+  );
+  
+  let sendBtn = null;
+  
+  if (activeModal) {
+    // Buscar botón primario de envío
+    sendBtn = activeModal.querySelector(
+      'button[aria-label*="Enviar"], ' +
+      'button[aria-label*="Send"], ' +
+      'button.artdeco-button--primary'
+    );
+    
+    // Verificar que sea el correcto
+    if (sendBtn) {
+      const text = sendBtn.textContent?.toLowerCase() || '';
+      if (!text.includes('enviar') && !text.includes('send')) {
+        sendBtn = null;
+      }
+    }
+  }
+  
+  // Fallback: buscar en todo el documento
+  if (!sendBtn) {
+    const allModals = document.querySelectorAll('.artdeco-modal');
+    for (const m of allModals) {
+      if (m.offsetParent === null) continue; // Saltear modales ocultos
+      
+      const buttons = m.querySelectorAll('button.artdeco-button--primary');
+      for (const btn of buttons) {
+        const text = btn.textContent?.toLowerCase() || '';
+        if (text.includes('enviar') || text.includes('send')) {
+          sendBtn = btn;
+          break;
+        }
+      }
+      if (sendBtn) break;
+    }
+  }
+  
+  if (!sendBtn) {
+    throw new Error('No encontré el botón Enviar en el modal');
+  }
+  
+  console.log('   📤 Clickeando Enviar...');
+  sendBtn.click();
+  
+  await new Promise(r => setTimeout(r, 2500));
+  
+  // Verificar éxito
+  const modalClosed = !document.querySelector('.artdeco-modal.send-invite:not(.artdeco-modal--hidden)');
+  const pendingVisible = document.querySelector('button[aria-label*="Pendiente"], .invite-sent-msg:not(.hidden)');
+  
+  const success = modalClosed || pendingVisible;
+  
+  console.log('═══════════════════════════════════════════════════════');
+  console.log(success ? '🎉 ¡INVITACIÓN ENVIADA!' : '⚠️ Estado incierto');
+  console.log('═══════════════════════════════════════════════════════');
+  
+  return { 
+    success: true, 
+    action: 'connection_sent', 
+    withNote: !!(noteMessage && noteMessage.trim().length > 0)
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📨 ENVIAR DM (para 1er grado)
+// ═══════════════════════════════════════════════════════════════════════
+async function sendDirectMessage(messageText) {
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('📨 ENVIANDO MENSAJE DIRECTO (v16.2)');
+  console.log('═══════════════════════════════════════════════════════');
+  
+  await new Promise(r => setTimeout(r, 2000));
+  
+  let msgInput = null;
+  
+  const inputSelectors = [
+    '.msg-form__contenteditable[contenteditable="true"]',
+    'div.msg-form__contenteditable[contenteditable="true"]',
+    '[role="textbox"][aria-label*="mensaje"]',
+    '[role="textbox"][aria-label*="Escribe"]',
+    '[role="textbox"][contenteditable="true"]',
+    '.msg-form__message-texteditor [contenteditable="true"]',
+    'div[contenteditable="true"][aria-multiline="true"]'
+  ];
+  
+  for (const selector of inputSelectors) {
+    const elements = document.querySelectorAll(selector);
+    const visible = Array.from(elements).filter(el => {
+      const rect = el.getBoundingClientRect();
+      const isVisible = rect.width > 0 && rect.height > 0;
+      const notInNav = !el.closest('#global-nav');
+      const notHidden = el.offsetParent !== null || el.closest('.msg-overlay-conversation-bubble');
+      return isVisible && notInNav && notHidden;
+    });
+    
+    if (visible.length > 0) {
+      msgInput = visible[visible.length - 1];
+      console.log(`   ✅ Input encontrado con: ${selector}`);
+      break;
+    }
+  }
+  
+  if (!msgInput) {
+    console.log('   ⚠️ No hay chat abierto. Buscando botón Mensaje...');
+    
+    const buttonSelectors = [
+      'a[href*="/messaging/compose/"]',
+      'button[aria-label*="Enviar mensaje"]',
+      'button[aria-label*="Message"]',
+      '.pvs-profile-actions button.artdeco-button--primary',
+      'button.message-anywhere-button'
+    ];
+    
+    let msgBtn = null;
+    for (const selector of buttonSelectors) {
+      const elements = document.querySelectorAll(selector);
+      for (const el of elements) {
+        const text = el.innerText?.toLowerCase() || '';
+        const label = el.getAttribute('aria-label')?.toLowerCase() || '';
+        const href = el.getAttribute('href') || '';
+        
+        if (!el.querySelector('.lock-icon') && (
+          text.includes('mensaje') || text.includes('message') ||
+          label.includes('mensaje') || label.includes('message') ||
+          href.includes('/messaging/')
+        )) {
+          msgBtn = el;
+          break;
+        }
+      }
+      if (msgBtn) break;
+    }
+    
+    if (!msgBtn) {
+      throw new Error('No encontré el botón "Enviar mensaje". ¿Es contacto de 1er grado?');
+    }
+    
+    console.log('   📍 Clickeando botón mensaje...');
+    msgBtn.click();
+    await new Promise(r => setTimeout(r, 5000));
+    
+    for (let attempt = 0; attempt < 10; attempt++) {
+      for (const selector of inputSelectors) {
+        const elements = document.querySelectorAll(selector);
+        const visible = Array.from(elements).filter(el => {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && !el.closest('#global-nav');
+        });
+        
+        if (visible.length > 0) {
+          msgInput = visible[visible.length - 1];
+          break;
+        }
+      }
+      if (msgInput) break;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+  
+  if (!msgInput) {
+    throw new Error('No pude encontrar el campo de texto del chat.');
+  }
+  
+  console.log('   ✍️ Escribiendo mensaje...');
+  msgInput.focus();
+  await new Promise(r => setTimeout(r, 300));
+  
+  msgInput.innerHTML = '';
+  const p = document.createElement('p');
+  p.textContent = messageText;
+  msgInput.appendChild(p);
+  
+  msgInput.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  msgInput.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(msgInput);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  await new Promise(r => setTimeout(r, 1000));
+  
+  console.log('   📤 Enviando con ENTER...');
+  
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    which: 13,
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    view: window
+  });
+  
+  msgInput.dispatchEvent(enterEvent);
+  
+  await new Promise(r => setTimeout(r, 100));
+  msgInput.dispatchEvent(new KeyboardEvent('keypress', {
+    key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+    bubbles: true, cancelable: true, composed: true, view: window
+  }));
+  
+  await new Promise(r => setTimeout(r, 100));
+  msgInput.dispatchEvent(new KeyboardEvent('keyup', {
+    key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+    bubbles: true, cancelable: true, composed: true, view: window
+  }));
+  
+  await new Promise(r => setTimeout(r, 2000));
+  
+  const remainingText = msgInput.textContent?.trim() || '';
+  const wasSent = remainingText === '' || remainingText.length < messageText.length / 2;
+  
+  console.log('═══════════════════════════════════════════════════════');
+  console.log(wasSent ? '🎉 ¡MENSAJE ENVIADO!' : '⚠️ Puede que no se haya enviado');
+  console.log('═══════════════════════════════════════════════════════');
+  
+  return { success: true, action: 'dm_sent', verified: wasSent };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // MESSAGE LISTENER
 // ═══════════════════════════════════════════════════════════════════════
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -384,239 +915,82 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   
+  if (message.action === 'DETECT_CONNECTION_TYPE') {
+    try {
+      const result = detectConnectionType();
+      sendResponse({ success: true, ...result });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
+  
   // ═══════════════════════════════════════════════════════════════════════
-  // 📨 SEND_DM: v16.0 (NATIVE INPUT + ENTER SEND)
+  // 📨 SEND_DM: v16.2 (SMART ACTION)
   // ═══════════════════════════════════════════════════════════════════════
   if (message.action === 'SEND_DM') {
     (async () => {
       try {
         console.log('═══════════════════════════════════════════════════════');
-        console.log('📨 SEND_DM v16.0 - NATIVE INPUT + ENTER SEND');
+        console.log('📨 SEND_DM v16.2 - SMART CONNECTION');
         console.log('═══════════════════════════════════════════════════════');
-        console.log('📍 Mensaje a enviar:', message.message);
+        console.log('📍 Mensaje:', message.message?.substring(0, 50) + '...');
+        console.log('📍 Forzar DM:', message.forceDM || false);
+        console.log('📍 Forzar Connect:', message.forceConnect || false);
 
-        // ─────────────────────────────────────────────────────────────────
-        // PASO 1: Buscar campo de texto de chat existente
-        // ─────────────────────────────────────────────────────────────────
-        console.log('\n[1/5] 🔍 Buscando campo de texto de chat...');
+        const connectionInfo = detectConnectionType();
         
-        // Esperar a que la página esté lista
-        await new Promise(r => setTimeout(r, 2000));
+        let result;
         
-        let msgInput = null;
-        
-        // Lista de selectores para el campo de mensaje (del más específico al más general)
-        const inputSelectors = [
-          // Selector exacto del HTML que pasaste
-          '.msg-form__contenteditable[contenteditable="true"]',
-          // Alternativas
-          'div.msg-form__contenteditable[contenteditable="true"]',
-          '[role="textbox"][aria-label*="mensaje"]',
-          '[role="textbox"][aria-label*="Escribe"]',
-          '[role="textbox"][contenteditable="true"]',
-          '.msg-form__message-texteditor [contenteditable="true"]',
-          'div[contenteditable="true"][aria-multiline="true"]'
-        ];
-        
-        // Intentar cada selector
-        for (const selector of inputSelectors) {
-          const elements = document.querySelectorAll(selector);
-          console.log(`   Selector "${selector}": ${elements.length} elementos`);
-          
-          // Filtrar solo los visibles (no en nav, no ocultos)
-          const visible = Array.from(elements).filter(el => {
-            const rect = el.getBoundingClientRect();
-            const isVisible = rect.width > 0 && rect.height > 0;
-            const notInNav = !el.closest('#global-nav');
-            const notHidden = el.offsetParent !== null || el.closest('.msg-overlay-conversation-bubble');
-            return isVisible && notInNav && notHidden;
-          });
-          
-          if (visible.length > 0) {
-            // Tomar el último (chat más reciente/activo)
-            msgInput = visible[visible.length - 1];
-            console.log(`   ✅ Encontrado con: ${selector}`);
-            break;
-          }
-        }
-        
-        // ─────────────────────────────────────────────────────────────────
-        // PASO 2: Si no hay input, intentar abrir chat con botón
-        // ─────────────────────────────────────────────────────────────────
-        if (!msgInput) {
-          console.log('\n[2/5] ⚠️ No hay chat abierto. Buscando botón "Enviar mensaje"...');
-          
-          const buttonSelectors = [
-            // Botón principal en perfil
-            'button.pvs-profile-actions__action[aria-label*="enviar mensaje"]',
-            'button.pvs-profile-actions__action[aria-label*="Enviar mensaje"]',
-            'button[aria-label*="Enviar mensaje"]',
-            'button[aria-label*="Message"]',
-            // Botón verde/turquesa que se ve en la imagen
-            '.pvs-profile-actions button.artdeco-button--primary',
-            // Message anywhere
-            'button.message-anywhere-button',
-            // Fallback: buscar por texto
-            'button.artdeco-button--primary'
-          ];
-          
-          let msgBtn = null;
-          
-          for (const selector of buttonSelectors) {
-            const buttons = document.querySelectorAll(selector);
-            console.log(`   Selector "${selector}": ${buttons.length} botones`);
-            
-            for (const btn of buttons) {
-              const text = btn.innerText?.toLowerCase() || '';
-              const label = btn.getAttribute('aria-label')?.toLowerCase() || '';
+        if (message.forceDM) {
+          result = await sendDirectMessage(message.message);
+        } else if (message.forceConnect) {
+          result = await sendConnectionRequest(message.message);
+        } else {
+          switch (connectionInfo.availableAction) {
+            case 'dm':
+              console.log('✅ Acción: Enviar DM');
+              result = await sendDirectMessage(message.message);
+              break;
               
-              if (text.includes('mensaje') || text.includes('message') || 
-                  label.includes('mensaje') || label.includes('message')) {
-                msgBtn = btn;
-                console.log(`   ✅ Botón encontrado: "${btn.innerText?.trim()}"`);
-                break;
-              }
-            }
-            if (msgBtn) break;
-          }
-          
-          if (!msgBtn) {
-            throw new Error('No encontré el botón "Enviar mensaje" ni chat abierto. ¿Estás en un perfil de LinkedIn?');
-          }
-          
-          console.log('   📍 Clickeando botón...');
-          msgBtn.click();
-          
-          // Esperar a que se abra el chat
-          console.log('   ⏳ Esperando que abra el chat (5 segundos)...');
-          await new Promise(r => setTimeout(r, 5000));
-          
-          // Buscar el input nuevamente
-          console.log('\n[3/5] 🔍 Buscando campo de texto después de abrir chat...');
-          
-          for (let attempt = 0; attempt < 10; attempt++) {
-            for (const selector of inputSelectors) {
-              const elements = document.querySelectorAll(selector);
-              const visible = Array.from(elements).filter(el => {
-                const rect = el.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0 && !el.closest('#global-nav');
-              });
+            case 'connect':
+              console.log('✅ Acción: Enviar solicitud de conexión');
+              result = await sendConnectionRequest(message.message);
+              break;
               
-              if (visible.length > 0) {
-                msgInput = visible[visible.length - 1];
-                console.log(`   ✅ Input encontrado en intento ${attempt + 1}`);
-                break;
-              }
-            }
-            if (msgInput) break;
-            
-            console.log(`   ⏳ Intento ${attempt + 1}/10...`);
-            await new Promise(r => setTimeout(r, 1000));
+            case 'inmail':
+              console.log('⚠️ Requiere InMail - Saltando');
+              result = { 
+                success: false, 
+                action: 'skipped', 
+                reason: 'requires_inmail'
+              };
+              break;
+              
+            case 'pending':
+              console.log('ℹ️ Invitación pendiente - Saltando');
+              result = { 
+                success: true, 
+                action: 'skipped', 
+                reason: 'invitation_pending' 
+              };
+              break;
+              
+            default:
+              throw new Error('No se pudo determinar acción disponible');
           }
         }
         
-        if (!msgInput) {
-          throw new Error('No pude encontrar el campo de texto del chat después de varios intentos.');
-        }
+        console.log('🎉 RESULTADO:', result);
         
-        // ─────────────────────────────────────────────────────────────────
-        // PASO 3: Escribir el mensaje usando método NATIVO
-        // ─────────────────────────────────────────────────────────────────
-        console.log('\n[4/5] ✍️ Escribiendo mensaje...');
-        
-        // Hacer focus en el input
-        msgInput.focus();
-        await new Promise(r => setTimeout(r, 300));
-        
-        // Limpiar contenido existente
-        msgInput.innerHTML = '';
-        
-        // MÉTODO NATIVO: Crear un párrafo con el texto
-        const p = document.createElement('p');
-        p.textContent = message.message;
-        msgInput.appendChild(p);
-        
-        // Disparar eventos para que LinkedIn detecte el cambio
-        msgInput.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-        msgInput.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-        
-        // Mover cursor al final
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(msgInput);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-        
-        console.log('   ✅ Mensaje escrito');
-        
-        // Pequeña espera para que LinkedIn procese
-        await new Promise(r => setTimeout(r, 1000));
-        
-        // ─────────────────────────────────────────────────────────────────
-        // PASO 4: Enviar con ENTER
-        // ─────────────────────────────────────────────────────────────────
-        console.log('\n[5/5] 📤 Enviando con ENTER...');
-        
-        // Crear evento Enter con todas las propiedades necesarias
-        const enterEvent = new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          view: window
+        sendResponse({ 
+          success: result.success, 
+          ...result,
+          connectionInfo 
         });
-        
-        // Disparar el evento
-        msgInput.dispatchEvent(enterEvent);
-        
-        // También disparar keypress y keyup por si acaso
-        await new Promise(r => setTimeout(r, 100));
-        
-        msgInput.dispatchEvent(new KeyboardEvent('keypress', {
-          key: 'Enter',
-          code: 'Enter', 
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          view: window
-        }));
-        
-        await new Promise(r => setTimeout(r, 100));
-        
-        msgInput.dispatchEvent(new KeyboardEvent('keyup', {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          view: window
-        }));
-        
-        // Esperar para verificar
-        await new Promise(r => setTimeout(r, 2000));
-        
-        // Verificar si se envió (el campo debería estar vacío o tener solo <p><br></p>)
-        const remainingText = msgInput.textContent?.trim() || '';
-        const wasSent = remainingText === '' || remainingText.length < message.message.length / 2;
-        
-        console.log('═══════════════════════════════════════════════════════');
-        console.log(wasSent ? '🎉 ¡MENSAJE ENVIADO!' : '⚠️ Puede que no se haya enviado');
-        console.log('═══════════════════════════════════════════════════════');
-        
-        sendResponse({ success: true, verified: wasSent });
 
       } catch (error) {
-        console.error('═══════════════════════════════════════════════════════');
         console.error('❌ ERROR:', error.message);
-        console.error('═══════════════════════════════════════════════════════');
         sendResponse({ success: false, error: error.message });
       }
     })();
@@ -626,4 +1000,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-console.log('✅ LinkedIn Analyzer v16.0 listo');
+console.log('✅ LinkedIn Analyzer v16.2 listo');
