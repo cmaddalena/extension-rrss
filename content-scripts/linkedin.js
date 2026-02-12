@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════
-// LINKEDIN AUTOMATION SCRIPT - v16.2 (PRECISE SELECTORS + CONNECT FLOW)
+// LINKEDIN AUTOMATION SCRIPT - v16.4 (SHADOW DOM SUPPORT)
 // ═══════════════════════════════════════════════════════════════════════
 
-console.log('🔷 LinkedIn Automation v16.2 (Precise Selectors) cargado');
+console.log('🔷 LinkedIn Automation v16.4 (Shadow DOM Support) cargado');
 
 const LinkedInAnalyzer = {
   config: {
@@ -278,534 +278,344 @@ const LinkedInAnalyzer = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🔍 DETECTAR TIPO DE CONEXIÓN - v16.2
+// 🔍 BUSCAR EN SHADOW DOM - v16.4
+// ═══════════════════════════════════════════════════════════════════════
+function querySelectorAllDeep(selector, root = document) {
+  const results = [];
+  
+  // Buscar en el documento/root actual
+  results.push(...root.querySelectorAll(selector));
+  
+  // Buscar en todos los Shadow DOMs
+  const allElements = root.querySelectorAll('*');
+  for (const el of allElements) {
+    if (el.shadowRoot) {
+      results.push(...querySelectorAllDeep(selector, el.shadowRoot));
+    }
+  }
+  
+  return results;
+}
+
+function querySelectorDeep(selector, root = document) {
+  // Primero buscar en el documento principal
+  const result = root.querySelector(selector);
+  if (result) return result;
+  
+  // Buscar en Shadow DOMs
+  const allElements = root.querySelectorAll('*');
+  for (const el of allElements) {
+    if (el.shadowRoot) {
+      const shadowResult = querySelectorDeep(selector, el.shadowRoot);
+      if (shadowResult) return shadowResult;
+    }
+  }
+  
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🔍 ENCONTRAR INPUT DE CHAT - v16.4 CON SHADOW DOM
+// ═══════════════════════════════════════════════════════════════════════
+function findChatInput() {
+  console.log('🔍 [findChatInput v16.4] Buscando en DOM y Shadow DOM...');
+  
+  const selectors = [
+    'div.msg-form__contenteditable[contenteditable="true"]',
+    '.msg-form__contenteditable[contenteditable="true"]',
+    '[contenteditable="true"][role="textbox"]',
+    '[contenteditable="true"][aria-label*="mensaje"]',
+    '[contenteditable="true"][aria-label*="Escribe"]',
+    'div[contenteditable="true"][aria-multiline="true"]'
+  ];
+  
+  // Primero buscar en DOM normal
+  for (const selector of selectors) {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      console.log(`   ✅ Encontrado en DOM normal: ${selector} (${elements.length})`);
+      return elements[elements.length - 1];
+    }
+  }
+  
+  console.log('   📦 Buscando en Shadow DOM...');
+  
+  // Buscar en Shadow DOMs
+  for (const selector of selectors) {
+    const elements = querySelectorAllDeep(selector);
+    if (elements.length > 0) {
+      console.log(`   ✅ Encontrado en Shadow DOM: ${selector} (${elements.length})`);
+      return elements[elements.length - 1];
+    }
+  }
+  
+  // Último recurso: buscar cualquier contenteditable en Shadow DOM
+  console.log('   🔎 Buscando cualquier contenteditable...');
+  const allContentEditable = querySelectorAllDeep('[contenteditable="true"]');
+  console.log(`   📊 Total contenteditable encontrados: ${allContentEditable.length}`);
+  
+  if (allContentEditable.length > 0) {
+    // Filtrar para encontrar el del chat (no el de búsqueda)
+    for (const el of allContentEditable) {
+      const isInChat = el.closest('.msg-form') || 
+                       el.getAttribute('aria-label')?.includes('mensaje') ||
+                       el.getAttribute('aria-label')?.includes('Escribe');
+      if (isInChat || allContentEditable.length === 1) {
+        console.log('   ✅ Usando contenteditable encontrado');
+        return el;
+      }
+    }
+    // Si no encontramos uno específico de chat, usar el último
+    console.log('   ⚠️ Usando último contenteditable');
+    return allContentEditable[allContentEditable.length - 1];
+  }
+  
+  console.log('   ❌ No se encontró ningún input');
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ✍️ ESCRIBIR EN INPUT
+// ═══════════════════════════════════════════════════════════════════════
+async function writeToInput(input, text) {
+  console.log('✍️ [writeToInput] Escribiendo mensaje...');
+  
+  input.focus();
+  await new Promise(r => setTimeout(r, 300));
+  
+  // Limpiar
+  input.innerHTML = '<p></p>';
+  await new Promise(r => setTimeout(r, 100));
+  
+  // Escribir
+  const p = input.querySelector('p') || input;
+  p.textContent = text;
+  
+  // Disparar eventos
+  input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  input.dispatchEvent(new InputEvent('input', {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    inputType: 'insertText',
+    data: text
+  }));
+  
+  console.log(`   ✅ Texto escrito: "${text.substring(0, 30)}..."`);
+  await new Promise(r => setTimeout(r, 500));
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📤 ENVIAR CON ENTER
+// ═══════════════════════════════════════════════════════════════════════
+async function sendWithEnter(input) {
+  console.log('📤 [sendWithEnter] Enviando...');
+  
+  input.focus();
+  await new Promise(r => setTimeout(r, 200));
+  
+ const eventProps = {
+  key: 'Enter',
+  code: 'Enter',
+  keyCode: 13,
+  which: 13,
+  ctrlKey: true,
+  bubbles: true,
+  cancelable: true,
+  composed: true,
+  view: window
+};
+  
+  input.dispatchEvent(new KeyboardEvent('keydown', eventProps));
+  await new Promise(r => setTimeout(r, 50));
+  input.dispatchEvent(new KeyboardEvent('keypress', eventProps));
+  await new Promise(r => setTimeout(r, 50));
+  input.dispatchEvent(new KeyboardEvent('keyup', eventProps));
+  
+  console.log('   ✅ ENTER enviado');
+  await new Promise(r => setTimeout(r, 1500));
+  
+  const remaining = input.textContent?.trim() || '';
+  return remaining.length < 5;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🔍 DETECTAR TIPO DE CONEXIÓN
 // ═══════════════════════════════════════════════════════════════════════
 function detectConnectionType() {
-  console.log('🔍 Detectando tipo de conexión (v16.2)...');
+  console.log('🔍 Detectando tipo de conexión...');
   
   const result = {
     connectionDegree: 'unknown',
     canSendDM: false,
     canConnect: false,
-    connectInOverflow: false,
     isMessageLocked: false,
-    alreadyConnected: false,
-    invitationSent: false,
     availableAction: 'none'
   };
   
-  // ─────────────────────────────────────────────────────────────────
-  // 1. Detectar grado de conexión (buscar "· 1º", "· 2º", "· 3º")
-  // ─────────────────────────────────────────────────────────────────
-  const profileHeader = document.querySelector('h1, .text-heading-xlarge');
-  if (profileHeader) {
-    const headerParent = profileHeader.parentElement?.parentElement || document.body;
-    const headerText = headerParent.textContent || '';
-    
-    if (headerText.includes('· 1') || headerText.includes('·1') || headerText.includes('• 1')) {
-      result.connectionDegree = '1st';
-    } else if (headerText.includes('· 2') || headerText.includes('·2') || headerText.includes('• 2')) {
-      result.connectionDegree = '2nd';
-    } else if (headerText.includes('· 3') || headerText.includes('·3') || headerText.includes('• 3')) {
-      result.connectionDegree = '3rd';
-    }
+  const bodyText = document.body.textContent || '';
+  if (bodyText.includes('· 1') || bodyText.includes('• 1')) {
+    result.connectionDegree = '1st';
+  } else if (bodyText.includes('· 2') || bodyText.includes('• 2')) {
+    result.connectionDegree = '2nd';
+  } else if (bodyText.includes('· 3') || bodyText.includes('• 3')) {
+    result.connectionDegree = '3rd';
   }
   
-  console.log(`   Grado detectado: ${result.connectionDegree}`);
-  
-  // ─────────────────────────────────────────────────────────────────
-  // 2. Buscar botón "Enviar mensaje" directo (sin candado)
-  // ─────────────────────────────────────────────────────────────────
-  const dmButtonSelectors = [
-    'a[href*="/messaging/compose/"]',
-    'button[aria-label*="Enviar mensaje"]',
-    'button[aria-label*="Message"]',
-    '.pvs-profile-actions button.artdeco-button--primary'
-  ];
-  
-  for (const selector of dmButtonSelectors) {
-    const elements = document.querySelectorAll(selector);
-    for (const el of elements) {
-      const text = el.textContent?.toLowerCase() || '';
-      const label = el.getAttribute('aria-label')?.toLowerCase() || '';
-      const href = el.getAttribute('href') || '';
-      
-      const hasLock = el.querySelector('.lock-icon, [type="locked-small"]');
-      const isLocked = label.includes('bloqueado') || label.includes('locked');
-      
-      if (!hasLock && !isLocked && (
-        text.includes('mensaje') || text.includes('message') ||
-        label.includes('mensaje') || label.includes('message') ||
-        href.includes('/messaging/')
-      )) {
-        result.canSendDM = true;
-        console.log('   ✅ Puede enviar DM directo');
-        break;
-      }
-    }
-    if (result.canSendDM) break;
-  }
-  
-  // ─────────────────────────────────────────────────────────────────
-  // 3. Buscar botón "Conectar" (directo o en overflow)
-  // ─────────────────────────────────────────────────────────────────
-  const connectDirectSelectors = [
-    'button[aria-label*="Conectar"]',
-    'button[aria-label*="Connect"]',
-    'button[aria-label*="Invitar"]'
-  ];
-  
-  for (const selector of connectDirectSelectors) {
-    const btn = document.querySelector(selector);
-    if (btn) {
-      const text = btn.textContent?.toLowerCase() || '';
-      if (text.includes('conectar') || text.includes('connect')) {
-        result.canConnect = true;
-        result.connectInOverflow = false;
-        console.log('   ✅ Botón Conectar visible directamente');
-        break;
-      }
-    }
-  }
-  
-  if (!result.canConnect) {
-    const connectLink = document.querySelector('a[href*="/preload/custom-invite/"]');
-    if (connectLink) {
-      result.canConnect = true;
-      result.connectInOverflow = true;
-      console.log('   ✅ Link Conectar encontrado (en overflow menu)');
-    }
-  }
-  
-  // ─────────────────────────────────────────────────────────────────
-  // 4. Detectar si mensaje está bloqueado
-  // ─────────────────────────────────────────────────────────────────
-  const lockedSelectors = [
-    'a[aria-label*="bloqueado"]',
-    'a[aria-label*="locked"]',
-    'a[href*="inmail-app-upsell"]',
-    'a[href*="message-locked"]',
-    '[type="locked-small"]'
-  ];
-  
-  for (const selector of lockedSelectors) {
-    if (document.querySelector(selector)) {
-      result.isMessageLocked = true;
-      console.log('   🔒 Mensaje bloqueado (requiere InMail)');
+  // Buscar botón mensaje (también en Shadow DOM)
+  const msgBtns = querySelectorAllDeep('a[href*="/messaging/"], button[aria-label*="mensaje"], button[aria-label*="Message"]');
+  for (const btn of msgBtns) {
+    if (!btn.querySelector('[type="locked"]') && !btn.getAttribute('aria-label')?.includes('bloqueado')) {
+      result.canSendDM = true;
       break;
     }
   }
   
-  // ─────────────────────────────────────────────────────────────────
-  // 5. Detectar si ya se envió invitación
-  // ─────────────────────────────────────────────────────────────────
-  const pendingEl = document.querySelector('.invite-sent-msg:not(.hidden), button[aria-label*="Pendiente"]');
-  if (pendingEl && pendingEl.offsetParent !== null) {
-    result.invitationSent = true;
-    console.log('   📨 Invitación ya enviada (pendiente)');
+  const connectLink = querySelectorDeep('a[href*="/preload/custom-invite/"], button[aria-label*="Conectar"]');
+  if (connectLink) {
+    result.canConnect = true;
   }
   
-  // ─────────────────────────────────────────────────────────────────
-  // 6. Determinar acción disponible
-  // ─────────────────────────────────────────────────────────────────
-  if (result.connectionDegree === '1st' || (result.canSendDM && !result.isMessageLocked)) {
+  if (querySelectorDeep('[type="locked-small"], a[href*="inmail-app-upsell"]')) {
+    result.isMessageLocked = true;
+  }
+  
+  if (result.canSendDM && !result.isMessageLocked) {
     result.availableAction = 'dm';
-    result.alreadyConnected = result.connectionDegree === '1st';
-  } else if (result.canConnect && !result.invitationSent) {
+  } else if (result.canConnect) {
     result.availableAction = 'connect';
   } else if (result.isMessageLocked) {
     result.availableAction = 'inmail';
-  } else if (result.invitationSent) {
-    result.availableAction = 'pending';
   }
   
-  console.log('📊 Resultado detección:', result);
+  console.log('📊 Conexión:', result);
   return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 📤 ENVIAR SOLICITUD DE CONEXIÓN CON NOTA - v16.2
-// Selectores basados en HTML real de LinkedIn
-// ═══════════════════════════════════════════════════════════════════════
-async function sendConnectionRequest(noteMessage) {
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('📤 ENVIANDO SOLICITUD DE CONEXIÓN (v16.2)');
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('📝 Nota:', noteMessage ? noteMessage.substring(0, 50) + '...' : '(sin nota)');
-  
-  // ─────────────────────────────────────────────────────────────────
-  // PASO 1: Buscar y clickear botón/link "Conectar"
-  // ─────────────────────────────────────────────────────────────────
-  console.log('\n[1/4] 🔍 Buscando botón Conectar...');
-  
-  let connectClicked = false;
-  
-  // Opción A: Link con href="/preload/custom-invite/" (nuevo diseño, en menú overflow)
-  const connectLink = document.querySelector('a[href*="/preload/custom-invite/"]');
-  if (connectLink) {
-    console.log('   ✅ Encontrado link de conexión (nuevo diseño)');
-    connectLink.click();
-    connectClicked = true;
-  }
-  
-  // Opción B: Botón directo con aria-label
-  if (!connectClicked) {
-    const connectBtnSelectors = [
-      'button[aria-label*="Conectar"]',
-      'button[aria-label*="Connect"]',
-      'button[aria-label*="Invitar"]',
-      'button[data-action="connect-btn"]'
-    ];
-    
-    for (const selector of connectBtnSelectors) {
-      const btn = document.querySelector(selector);
-      if (btn) {
-        const text = btn.textContent?.toLowerCase() || '';
-        if (text.includes('conectar') || text.includes('connect')) {
-          console.log('   ✅ Encontrado botón Conectar directo');
-          btn.click();
-          connectClicked = true;
-          break;
-        }
-      }
-    }
-  }
-  
-  // Opción C: Buscar por texto en cualquier elemento clickeable
-  if (!connectClicked) {
-    const allClickables = document.querySelectorAll('button, a[role="menuitem"], div[role="menuitem"]');
-    for (const el of allClickables) {
-      const text = el.textContent?.trim().toLowerCase() || '';
-      if (text === 'conectar' || text === 'connect') {
-        console.log('   ✅ Encontrado elemento Conectar por texto');
-        el.click();
-        connectClicked = true;
-        break;
-      }
-    }
-  }
-  
-  if (!connectClicked) {
-    throw new Error('No se encontró el botón Conectar. ¿El perfil ya está conectado?');
-  }
-  
-  console.log('   ⏳ Esperando modal...');
-  await new Promise(r => setTimeout(r, 2500));
-  
-  // ─────────────────────────────────────────────────────────────────
-  // PASO 2: Detectar el modal "¿Añadir una nota a la invitación?"
-  // ─────────────────────────────────────────────────────────────────
-  console.log('\n[2/4] 🔍 Buscando modal de invitación...');
-  
-  // Modal clásico de LinkedIn
-  const modal = document.querySelector('.artdeco-modal.send-invite, div[role="dialog"], .artdeco-modal');
-  
-  if (!modal) {
-    console.log('   ⚠️ No apareció modal. Verificando si se envió directamente...');
-    await new Promise(r => setTimeout(r, 1500));
-    
-    const pendingBtn = document.querySelector('button[aria-label*="Pendiente"], .invite-sent-msg:not(.hidden)');
-    if (pendingBtn) {
-      console.log('   ✅ Invitación enviada directamente (sin opción de nota)');
-      return { success: true, action: 'connection_sent', withNote: false };
-    }
-    
-    throw new Error('No apareció el modal de invitación');
-  }
-  
-  console.log('   ✅ Modal encontrado');
-  
-  // ─────────────────────────────────────────────────────────────────
-  // PASO 3: Añadir nota si hay mensaje
-  // ─────────────────────────────────────────────────────────────────
-  console.log('\n[3/4] 📝 Procesando nota...');
-  
-  if (noteMessage && noteMessage.trim().length > 0) {
-    // Buscar botón "Añadir una nota" por aria-label o texto
-    let addNoteBtn = modal.querySelector('button[aria-label*="Añadir una nota"], button[aria-label*="Add a note"]');
-    
-    if (!addNoteBtn) {
-      const buttons = modal.querySelectorAll('button.artdeco-button--secondary, button.artdeco-button--muted');
-      for (const btn of buttons) {
-        const text = btn.textContent?.toLowerCase() || '';
-        if (text.includes('añadir') && text.includes('nota')) {
-          addNoteBtn = btn;
-          break;
-        }
-        if (text.includes('add') && text.includes('note')) {
-          addNoteBtn = btn;
-          break;
-        }
-      }
-    }
-    
-    if (addNoteBtn) {
-      console.log('   📝 Clickeando "Añadir una nota"...');
-      addNoteBtn.click();
-      await new Promise(r => setTimeout(r, 1500));
-      
-      // Buscar textarea con selectores específicos del HTML
-      const textarea = document.querySelector(
-        'textarea#custom-message, ' +
-        'textarea.connect-button-send-invite__custom-message, ' +
-        'textarea[name="message"]'
-      );
-      
-      if (textarea) {
-        console.log('   ✍️ Escribiendo nota...');
-        textarea.focus();
-        await new Promise(r => setTimeout(r, 200));
-        
-        // Truncar a 300 caracteres (límite de LinkedIn)
-        const noteText = noteMessage.substring(0, 300);
-        textarea.value = noteText;
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        textarea.dispatchEvent(new Event('change', { bubbles: true }));
-        
-        console.log(`   ✅ Nota escrita (${noteText.length}/300 chars)`);
-        await new Promise(r => setTimeout(r, 500));
-      } else {
-        console.log('   ⚠️ No encontré textarea para la nota');
-      }
-    } else {
-      console.log('   ⚠️ No encontré botón "Añadir nota"');
-    }
-  } else {
-    console.log('   ℹ️ Sin nota, enviando directamente');
-  }
-  
-  // ─────────────────────────────────────────────────────────────────
-  // PASO 4: Clickear botón Enviar
-  // ─────────────────────────────────────────────────────────────────
-  console.log('\n[4/4] 📤 Enviando invitación...');
-  
-  // Buscar modal activo
-  const activeModal = document.querySelector(
-    '.artdeco-modal:not(.artdeco-modal--hidden), ' +
-    'div[role="dialog"]:not([aria-hidden="true"])'
-  );
-  
-  let sendBtn = null;
-  
-  if (activeModal) {
-    // Buscar botón primario de envío
-    sendBtn = activeModal.querySelector(
-      'button[aria-label*="Enviar"], ' +
-      'button[aria-label*="Send"], ' +
-      'button.artdeco-button--primary'
-    );
-    
-    // Verificar que sea el correcto
-    if (sendBtn) {
-      const text = sendBtn.textContent?.toLowerCase() || '';
-      if (!text.includes('enviar') && !text.includes('send')) {
-        sendBtn = null;
-      }
-    }
-  }
-  
-  // Fallback: buscar en todo el documento
-  if (!sendBtn) {
-    const allModals = document.querySelectorAll('.artdeco-modal');
-    for (const m of allModals) {
-      if (m.offsetParent === null) continue; // Saltear modales ocultos
-      
-      const buttons = m.querySelectorAll('button.artdeco-button--primary');
-      for (const btn of buttons) {
-        const text = btn.textContent?.toLowerCase() || '';
-        if (text.includes('enviar') || text.includes('send')) {
-          sendBtn = btn;
-          break;
-        }
-      }
-      if (sendBtn) break;
-    }
-  }
-  
-  if (!sendBtn) {
-    throw new Error('No encontré el botón Enviar en el modal');
-  }
-  
-  console.log('   📤 Clickeando Enviar...');
-  sendBtn.click();
-  
-  await new Promise(r => setTimeout(r, 2500));
-  
-  // Verificar éxito
-  const modalClosed = !document.querySelector('.artdeco-modal.send-invite:not(.artdeco-modal--hidden)');
-  const pendingVisible = document.querySelector('button[aria-label*="Pendiente"], .invite-sent-msg:not(.hidden)');
-  
-  const success = modalClosed || pendingVisible;
-  
-  console.log('═══════════════════════════════════════════════════════');
-  console.log(success ? '🎉 ¡INVITACIÓN ENVIADA!' : '⚠️ Estado incierto');
-  console.log('═══════════════════════════════════════════════════════');
-  
-  return { 
-    success: true, 
-    action: 'connection_sent', 
-    withNote: !!(noteMessage && noteMessage.trim().length > 0)
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// 📨 ENVIAR DM (para 1er grado)
+// 📨 ENVIAR DM
 // ═══════════════════════════════════════════════════════════════════════
 async function sendDirectMessage(messageText) {
   console.log('═══════════════════════════════════════════════════════');
-  console.log('📨 ENVIANDO MENSAJE DIRECTO (v16.2)');
+  console.log('📨 SEND DM v16.4 (Shadow DOM Support)');
   console.log('═══════════════════════════════════════════════════════');
   
-  await new Promise(r => setTimeout(r, 2000));
+  // PASO 1: Buscar input existente
+  console.log('\n[1/4] Buscando chat abierto...');
+  let input = findChatInput();
   
-  let msgInput = null;
-  
-  const inputSelectors = [
-    '.msg-form__contenteditable[contenteditable="true"]',
-    'div.msg-form__contenteditable[contenteditable="true"]',
-    '[role="textbox"][aria-label*="mensaje"]',
-    '[role="textbox"][aria-label*="Escribe"]',
-    '[role="textbox"][contenteditable="true"]',
-    '.msg-form__message-texteditor [contenteditable="true"]',
-    'div[contenteditable="true"][aria-multiline="true"]'
-  ];
-  
-  for (const selector of inputSelectors) {
-    const elements = document.querySelectorAll(selector);
-    const visible = Array.from(elements).filter(el => {
-      const rect = el.getBoundingClientRect();
-      const isVisible = rect.width > 0 && rect.height > 0;
-      const notInNav = !el.closest('#global-nav');
-      const notHidden = el.offsetParent !== null || el.closest('.msg-overlay-conversation-bubble');
-      return isVisible && notInNav && notHidden;
-    });
+  // PASO 2: Si no hay input, abrir chat
+  if (!input) {
+    console.log('\n[2/4] Abriendo chat...');
     
-    if (visible.length > 0) {
-      msgInput = visible[visible.length - 1];
-      console.log(`   ✅ Input encontrado con: ${selector}`);
-      break;
-    }
-  }
-  
-  if (!msgInput) {
-    console.log('   ⚠️ No hay chat abierto. Buscando botón Mensaje...');
-    
-    const buttonSelectors = [
-      'a[href*="/messaging/compose/"]',
-      'button[aria-label*="Enviar mensaje"]',
-      'button[aria-label*="Message"]',
-      '.pvs-profile-actions button.artdeco-button--primary',
-      'button.message-anywhere-button'
-    ];
-    
-    let msgBtn = null;
-    for (const selector of buttonSelectors) {
-      const elements = document.querySelectorAll(selector);
-      for (const el of elements) {
-        const text = el.innerText?.toLowerCase() || '';
-        const label = el.getAttribute('aria-label')?.toLowerCase() || '';
-        const href = el.getAttribute('href') || '';
-        
-        if (!el.querySelector('.lock-icon') && (
-          text.includes('mensaje') || text.includes('message') ||
-          label.includes('mensaje') || label.includes('message') ||
-          href.includes('/messaging/')
-        )) {
-          msgBtn = el;
-          break;
-        }
-      }
-      if (msgBtn) break;
-    }
+    // Buscar botón mensaje (también en Shadow DOM)
+    const msgBtn = querySelectorDeep('a[href*="/messaging/compose/"]') ||
+                   querySelectorDeep('button[aria-label*="Enviar mensaje"]') ||
+                   querySelectorDeep('button[aria-label*="Message"]');
     
     if (!msgBtn) {
-      throw new Error('No encontré el botón "Enviar mensaje". ¿Es contacto de 1er grado?');
+      throw new Error('No encontré botón de mensaje');
     }
     
-    console.log('   📍 Clickeando botón mensaje...');
+    console.log('   Clickeando botón mensaje...');
     msgBtn.click();
-    await new Promise(r => setTimeout(r, 5000));
     
-    for (let attempt = 0; attempt < 10; attempt++) {
-      for (const selector of inputSelectors) {
-        const elements = document.querySelectorAll(selector);
-        const visible = Array.from(elements).filter(el => {
-          const rect = el.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0 && !el.closest('#global-nav');
-        });
-        
-        if (visible.length > 0) {
-          msgInput = visible[visible.length - 1];
-          break;
-        }
-      }
-      if (msgInput) break;
+    console.log('   ⏳ Esperando que abra el chat...');
+    await new Promise(r => setTimeout(r, 3000));
+    
+    // Buscar input de nuevo
+    console.log('\n[3/4] Buscando input post-apertura...');
+    
+    for (let i = 0; i < 10; i++) {
+      input = findChatInput();
+      if (input) break;
+      console.log(`   Intento ${i + 1}/10...`);
       await new Promise(r => setTimeout(r, 1000));
     }
   }
   
-  if (!msgInput) {
-    throw new Error('No pude encontrar el campo de texto del chat.');
+  if (!input) {
+    throw new Error('No pude encontrar el campo de texto del chat');
   }
   
-  console.log('   ✍️ Escribiendo mensaje...');
-  msgInput.focus();
-  await new Promise(r => setTimeout(r, 300));
+  // PASO 3: Escribir
+  console.log('\n[4/4] Escribiendo y enviando...');
+  await writeToInput(input, messageText);
   
-  msgInput.innerHTML = '';
-  const p = document.createElement('p');
-  p.textContent = messageText;
-  msgInput.appendChild(p);
-  
-  msgInput.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-  msgInput.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-  
-  const selection = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(msgInput);
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
-  
-  await new Promise(r => setTimeout(r, 1000));
-  
-  console.log('   📤 Enviando con ENTER...');
-  
-  const enterEvent = new KeyboardEvent('keydown', {
-    key: 'Enter',
-    code: 'Enter',
-    keyCode: 13,
-    which: 13,
-    bubbles: true,
-    cancelable: true,
-    composed: true,
-    view: window
-  });
-  
-  msgInput.dispatchEvent(enterEvent);
-  
-  await new Promise(r => setTimeout(r, 100));
-  msgInput.dispatchEvent(new KeyboardEvent('keypress', {
-    key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-    bubbles: true, cancelable: true, composed: true, view: window
-  }));
-  
-  await new Promise(r => setTimeout(r, 100));
-  msgInput.dispatchEvent(new KeyboardEvent('keyup', {
-    key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-    bubbles: true, cancelable: true, composed: true, view: window
-  }));
-  
-  await new Promise(r => setTimeout(r, 2000));
-  
-  const remainingText = msgInput.textContent?.trim() || '';
-  const wasSent = remainingText === '' || remainingText.length < messageText.length / 2;
+  // PASO 4: Enviar
+  const sent = await sendWithEnter(input);
   
   console.log('═══════════════════════════════════════════════════════');
-  console.log(wasSent ? '🎉 ¡MENSAJE ENVIADO!' : '⚠️ Puede que no se haya enviado');
+  console.log(sent ? '🎉 ¡MENSAJE ENVIADO!' : '⚠️ Puede que no se haya enviado');
   console.log('═══════════════════════════════════════════════════════');
   
-  return { success: true, action: 'dm_sent', verified: wasSent };
+  return { success: true, action: 'dm_sent', verified: sent };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📤 ENVIAR CONEXIÓN CON NOTA
+// ═══════════════════════════════════════════════════════════════════════
+async function sendConnectionRequest(noteMessage) {
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('📤 SEND CONNECTION v16.4');
+  console.log('═══════════════════════════════════════════════════════');
+  
+  const clickTarget = querySelectorDeep('a[href*="/preload/custom-invite/"]') ||
+                      querySelectorDeep('button[aria-label*="Conectar"]');
+  
+  if (!clickTarget) {
+    throw new Error('No encontré botón Conectar');
+  }
+  
+  console.log('[1/3] Clickeando Conectar...');
+  clickTarget.click();
+  await new Promise(r => setTimeout(r, 2500));
+  
+  const modal = querySelectorDeep('.artdeco-modal, div[role="dialog"]');
+  if (!modal) {
+    console.log('   No apareció modal, verificando...');
+    await new Promise(r => setTimeout(r, 1500));
+    return { success: true, action: 'connection_sent', withNote: false };
+  }
+  
+  if (noteMessage && noteMessage.trim()) {
+    console.log('[2/3] Añadiendo nota...');
+    
+    const addNoteBtn = Array.from(modal.querySelectorAll('button')).find(b => 
+      b.textContent?.toLowerCase().includes('añadir') && b.textContent?.toLowerCase().includes('nota')
+    );
+    
+    if (addNoteBtn) {
+      addNoteBtn.click();
+      await new Promise(r => setTimeout(r, 1500));
+      
+      const textarea = querySelectorDeep('textarea#custom-message, textarea[name="message"]');
+      if (textarea) {
+        textarea.focus();
+        textarea.value = noteMessage.substring(0, 300);
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        console.log('   ✅ Nota escrita');
+      }
+    }
+  }
+  
+  console.log('[3/3] Enviando...');
+  const sendBtn = Array.from(querySelectorAllDeep('.artdeco-modal button')).find(b => 
+    b.textContent?.toLowerCase().includes('enviar')
+  );
+  
+  if (sendBtn) {
+    sendBtn.click();
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('🎉 ¡CONEXIÓN ENVIADA!');
+  console.log('═══════════════════════════════════════════════════════');
+  
+  return { success: true, action: 'connection_sent', withNote: !!(noteMessage?.trim()) };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -831,24 +641,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const users = [];
         
         if (message.type === 'reactions' || message.type === 'both') {
-          const reactionsSelectors = [
-            'button.social-details-social-counts__count-value',
-            '.social-details-social-counts__reactions-count',
-            'button[aria-label*="reaccion"]',
-            'button[aria-label*="reaction"]'
-          ];
-          
-          let reactionsBtn = null;
-          for (const sel of reactionsSelectors) {
-            reactionsBtn = document.querySelector(sel);
-            if (reactionsBtn) break;
-          }
+          const reactionsBtn = querySelectorDeep('button.social-details-social-counts__count-value, .social-details-social-counts__reactions-count');
           
           if (reactionsBtn) {
             reactionsBtn.click();
             await new Promise(r => setTimeout(r, 2500));
             
-            const modal = document.querySelector('div[role="dialog"].social-details-reactors-modal, div.artdeco-modal');
+            const modal = querySelectorDeep('div[role="dialog"], div.artdeco-modal');
             if (modal) {
               const scrollContainer = modal.querySelector('.scaffold-finite-scroll__content, .artdeco-modal__content');
               if (scrollContainer) {
@@ -858,39 +657,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               }
               
-              const personItems = modal.querySelectorAll('ul > li');
-              personItems.forEach(item => {
-                const link = item.querySelector('a[href*="/in/"]');
-                if (!link) return;
-                
+              modal.querySelectorAll('a[href*="/in/"]').forEach(link => {
                 const href = link.getAttribute('href');
                 const match = href?.match(/\/in\/([^\/\?]+)/);
-                if (!match) return;
-                
-                const username = match[1];
-                if (users.find(u => u.username === username)) return;
-                
-                const nameEl = item.querySelector('.artdeco-entity-lockup__title span[aria-hidden="true"], .artdeco-entity-lockup__title span');
-                const name = nameEl?.textContent?.trim() || username;
-                
-                const titleEl = item.querySelector('.artdeco-entity-lockup__caption');
-                const title = titleEl?.textContent?.trim() || '';
-                
-                users.push({ username, name, title, type: 'reaction', platform: 'linkedin' });
+                if (match && !users.find(u => u.username === match[1])) {
+                  users.push({ 
+                    username: match[1], 
+                    name: link.textContent?.trim() || match[1], 
+                    type: 'reaction', 
+                    platform: 'linkedin' 
+                  });
+                }
               });
               
-              const closeBtn = modal.querySelector('button[aria-label="Descartar"], button[aria-label="Dismiss"], button.artdeco-modal__dismiss');
-              if (closeBtn) {
-                closeBtn.click();
-                await new Promise(r => setTimeout(r, 500));
-              }
+              const closeBtn = modal.querySelector('button[aria-label="Descartar"], button[aria-label="Dismiss"]');
+              if (closeBtn) closeBtn.click();
             }
           }
         }
         
         if (message.type === 'comments' || message.type === 'both') {
-          const comments = document.querySelectorAll('.comments-comment-item a[href*="/in/"], .comments-comment-entity a[href*="/in/"]');
-          comments.forEach(link => {
+          querySelectorAllDeep('.comments-comment-item a[href*="/in/"]').forEach(link => {
             const href = link.getAttribute('href');
             const match = href?.match(/\/in\/([^\/\?]+)/);
             if (match && !users.find(u => u.username === match[1])) {
@@ -925,70 +712,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   
-  // ═══════════════════════════════════════════════════════════════════════
-  // 📨 SEND_DM: v16.2 (SMART ACTION)
-  // ═══════════════════════════════════════════════════════════════════════
   if (message.action === 'SEND_DM') {
     (async () => {
       try {
         console.log('═══════════════════════════════════════════════════════');
-        console.log('📨 SEND_DM v16.2 - SMART CONNECTION');
+        console.log('📨 SEND_DM v16.4 (Shadow DOM)');
         console.log('═══════════════════════════════════════════════════════');
-        console.log('📍 Mensaje:', message.message?.substring(0, 50) + '...');
-        console.log('📍 Forzar DM:', message.forceDM || false);
-        console.log('📍 Forzar Connect:', message.forceConnect || false);
-
-        const connectionInfo = detectConnectionType();
+        console.log('📍 Mensaje:', message.message?.substring(0, 50));
         
+        const connectionInfo = detectConnectionType();
         let result;
         
-        if (message.forceDM) {
+        if (message.forceDM || connectionInfo.availableAction === 'dm') {
           result = await sendDirectMessage(message.message);
-        } else if (message.forceConnect) {
+        } else if (message.forceConnect || connectionInfo.availableAction === 'connect') {
           result = await sendConnectionRequest(message.message);
+        } else if (connectionInfo.availableAction === 'inmail') {
+          result = { success: false, action: 'skipped', reason: 'requires_inmail' };
         } else {
-          switch (connectionInfo.availableAction) {
-            case 'dm':
-              console.log('✅ Acción: Enviar DM');
-              result = await sendDirectMessage(message.message);
-              break;
-              
-            case 'connect':
-              console.log('✅ Acción: Enviar solicitud de conexión');
-              result = await sendConnectionRequest(message.message);
-              break;
-              
-            case 'inmail':
-              console.log('⚠️ Requiere InMail - Saltando');
-              result = { 
-                success: false, 
-                action: 'skipped', 
-                reason: 'requires_inmail'
-              };
-              break;
-              
-            case 'pending':
-              console.log('ℹ️ Invitación pendiente - Saltando');
-              result = { 
-                success: true, 
-                action: 'skipped', 
-                reason: 'invitation_pending' 
-              };
-              break;
-              
-            default:
-              throw new Error('No se pudo determinar acción disponible');
-          }
+          throw new Error('No se pudo determinar acción');
         }
         
-        console.log('🎉 RESULTADO:', result);
+        sendResponse({ success: result.success, ...result, connectionInfo });
         
-        sendResponse({ 
-          success: result.success, 
-          ...result,
-          connectionInfo 
-        });
-
       } catch (error) {
         console.error('❌ ERROR:', error.message);
         sendResponse({ success: false, error: error.message });
@@ -1000,4 +746,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-console.log('✅ LinkedIn Analyzer v16.2 listo');
+console.log('✅ LinkedIn Analyzer v16.4 listo');
