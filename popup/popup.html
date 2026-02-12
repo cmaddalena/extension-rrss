@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Analyzer Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>📊 Social Analyzer Pro</h1>
+      <p class="subtitle">Analiza tu competencia automáticamente</p>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="instagram">
+        📱 Instagram
+      </button>
+      <button class="tab" data-tab="linkedin">
+        💼 LinkedIn
+      </button>
+      <button class="tab" data-tab="commentor">
+        💬 Comentador
+      </button>
+      <button class="tab" data-tab="whatsapp">
+        💚 WhatsApp
+      </button>
+      <button class="tab" data-tab="metrics">
+        📊 Métricas
+      </button>
+      <button class="tab" data-tab="account">
+        👤 Mi Cuenta
+      </button>
+      <button class="tab" data-tab="config">
+        ⚙️ Config
+      </button>
+    </div>
+    
+    <!-- Global Progress Indicator -->
+    <div id="global-progress" class="global-progress" style="display: none;">
+      <div class="progress-header">
+        <span id="global-progress-platform">📱</span>
+        <span id="global-progress-username">@username</span>
+        <button class="btn-icon-close" id="cancel-global-analysis">✕</button>
+      </div>
+      <div class="progress-status" id="global-progress-status">🔍 Iniciando...</div>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="global-progress-bar" style="width: 0%"></div>
+      </div>
+      <div class="progress-text" id="global-progress-text">0 / 30 posts</div>
+    </div>
+    
+    <!-- Tab Content: Instagram -->
+    <div id="tab-instagram" class="tab-content active">
+      <div class="section-header">
+        <h2>Competidores Instagram</h2>
+        <button class="btn btn-primary btn-sm" id="add-instagram">➕ Agregar</button>
+      </div>
+      
+      <div id="instagram-list" class="competitors-list">
+        <div class="empty-state">
+          <p>👋 No tenés competidores agregados</p>
+          <p class="small">Agregá tu primer competidor para empezar</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: LinkedIn -->
+    <div id="tab-linkedin" class="tab-content">
+      <div class="section-header">
+        <h2>Competidores LinkedIn</h2>
+        <button class="btn btn-primary btn-sm" id="add-linkedin">➕ Agregar</button>
+      </div>
+      
+      <div id="linkedin-list" class="competitors-list">
+        <div class="empty-state">
+          <p>👋 No tenés competidores agregados</p>
+          <p class="small">Agregá tu primer competidor para empezar</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: Métricas Globales -->
+    <div id="tab-metrics" class="tab-content">
+      <div class="section-header">
+        <h2>Métricas Globales</h2>
+        <div class="metrics-tabs">
+          <button class="metrics-tab active" data-platform="instagram">📱 Instagram</button>
+          <button class="metrics-tab" data-platform="linkedin">💼 LinkedIn</button>
+        </div>
+      </div>
+      
+      <div id="metrics-content">
+        <div class="empty-state">
+          <p>📊 Analizá al menos un competidor para ver métricas</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: Comentador -->
+    <div id="tab-commentor" class="tab-content">
+      <div class="section-header">
+        <h2>💬 Comentador Inteligente</h2>
+        <p class="hint">Comenta automáticamente en posts de tus referentes con IA</p>
+      </div>
+      
+      <!-- AI Configuration -->
+      <div class="commentor-section">
+        <h3>🤖 Configuración de IA</h3>
+        
+        <div class="ai-config-card">
+          <div class="form-group">
+            <label>Provider:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="ai-provider" value="anthropic" checked>
+                <span>Anthropic (Claude)</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="ai-provider" value="openai">
+                <span>OpenAI (GPT-4)</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>API Key:</label>
+            <input type="password" id="ai-api-key" placeholder="sk-ant-... o sk-...">
+            <p class="hint">💡 Tu API key nunca sale de tu navegador</p>
+          </div>
+          
+          <div class="form-group">
+            <label>Modelo:</label>
+            <select id="ai-model">
+              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+              <option value="gpt-4o">GPT-4o</option>
+            </select>
+          </div>
+          
+          <div class="form-actions">
+            <button class="btn btn-secondary" id="test-ai-connection">🔌 Probar Conexión</button>
+            <button class="btn btn-primary" id="save-ai-config">💾 Guardar</button>
+          </div>
+          
+          <div id="ai-status" class="ai-status" style="display: none;">
+            <span class="status-indicator"></span>
+            <span class="status-text"></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Global Prompt Configuration -->
+      <div class="commentor-section">
+        <h3>📝 Prompt Global</h3>
+        <p class="hint">Usado cuando el referente no tiene prompt custom</p>
+        
+        <div class="prompt-config-card">
+          <div class="form-group">
+            <label>Tu expertise:</label>
+            <input type="text" id="global-expertise" placeholder="IA, Ventas B2B, Automatización, Growth">
+          </div>
+          
+          <div class="form-group">
+            <label>Objetivo del comentario:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="global-objective" value="autoridad" checked>
+                <span>Generar autoridad</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="global-objective" value="networking">
+                <span>Networking / Relación</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="global-objective" value="pitch">
+                <span>Soft pitch / Oferta</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Tono:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="global-tone" value="profesional" checked>
+                <span>Profesional</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="global-tone" value="casual">
+                <span>Casual</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="global-tone" value="tecnico">
+                <span>Técnico</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Instrucciones adicionales:</label>
+            <textarea id="global-instructions" rows="3" placeholder="Aporta valor, sé auténtico, max 150 chars, menciona casos reales..."></textarea>
+          </div>
+          
+          <button class="btn btn-primary btn-block" id="save-global-prompt">💾 Guardar Prompt Global</button>
+        </div>
+      </div>
+      
+      <!-- Referentes List -->
+      <div class="commentor-section">
+        <div class="section-header">
+          <h3>📋 Mis Referentes (<span id="referentes-count">0</span>)</h3>
+          <button class="btn btn-primary btn-sm" id="add-referente">+ Agregar</button>
+        </div>
+        
+        <div id="referentes-list" class="referentes-list">
+          <div class="empty-state">
+            <p>No hay referentes agregados</p>
+            <p class="hint">Agregá referentes para empezar a comentar</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="commentor-section">
+        <h3>🚀 Acciones</h3>
+        <button class="btn btn-primary btn-block btn-large" id="comment-all-referentes" disabled>
+          🎯 Comentar TODOS los últimos posts
+        </button>
+        <p class="hint">Analizará + Likeará + Comentará cada referente activo</p>
+        
+        <div class="action-buttons">
+          <button class="btn btn-secondary" id="view-comment-history">📊 Ver Historial</button>
+          <button class="btn btn-secondary" id="view-daily-stats">📈 Stats del Día</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: Comentador -->
+    <div id="tab-commentor" class="tab-content">
+      <div class="section-header">
+        <h2>💬 Comentador Inteligente</h2>
+        <p class="hint">Comenta posts de referentes con IA</p>
+      </div>
+      
+      <!-- Configuración de IA -->
+      <div class="commentor-section">
+        <h3>🤖 Configuración de IA</h3>
+        
+        <div class="ai-provider-select">
+          <label>
+            <input type="radio" name="ai-provider" value="anthropic" checked>
+            <span class="provider-option">
+              <strong>Anthropic (Claude)</strong>
+              <small>Recomendado - Mejor análisis contextual</small>
+            </span>
+          </label>
+          
+          <label>
+            <input type="radio" name="ai-provider" value="openai">
+            <span class="provider-option">
+              <strong>OpenAI (GPT-4)</strong>
+              <small>Alternativa - Buen análisis general</small>
+            </span>
+          </label>
+        </div>
+        
+        <div class="api-key-config">
+          <label>
+            <span>API Key:</span>
+            <input type="password" id="ai-api-key" placeholder="sk-ant-... o sk-...">
+            <button class="btn btn-sm" id="toggle-api-key">👁️</button>
+          </label>
+          <p class="hint">🔒 Tu API key nunca sale de tu navegador</p>
+        </div>
+        
+        <div class="api-test">
+          <button class="btn btn-secondary" id="test-ai-connection">🔌 Probar Conexión</button>
+          <span id="ai-connection-status"></span>
+        </div>
+      </div>
+      
+      <!-- Prompt Global -->
+      <div class="commentor-section">
+        <h3>📝 Prompt Global</h3>
+        <p class="hint">Usado cuando el referente no tiene prompt custom</p>
+        
+        <label>
+          <span>Tu expertise:</span>
+          <input type="text" id="global-expertise" placeholder="IA, Ventas B2B, Automatización">
+        </label>
+        
+        <div class="radio-group">
+          <label>Objetivo:</label>
+          <label class="radio-inline">
+            <input type="radio" name="global-objective" value="autoridad" checked>
+            <span>Autoridad</span>
+          </label>
+          <label class="radio-inline">
+            <input type="radio" name="global-objective" value="networking">
+            <span>Networking</span>
+          </label>
+          <label class="radio-inline">
+            <input type="radio" name="global-objective" value="pitch">
+            <span>Soft Pitch</span>
+          </label>
+        </div>
+        
+        <div class="radio-group">
+          <label>Tono:</label>
+          <label class="radio-inline">
+            <input type="radio" name="global-tone" value="profesional" checked>
+            <span>Profesional</span>
+          </label>
+          <label class="radio-inline">
+            <input type="radio" name="global-tone" value="casual">
+            <span>Casual</span>
+          </label>
+          <label class="radio-inline">
+            <input type="radio" name="global-tone" value="tecnico">
+            <span>Técnico</span>
+          </label>
+        </div>
+        
+        <label>
+          <span>Instrucciones adicionales:</span>
+          <textarea id="global-instructions" rows="3" placeholder="Aporta valor, sé auténtico, max 150 chars, evita emojis excesivos..."></textarea>
+        </label>
+        
+        <button class="btn btn-primary" id="save-global-prompt">💾 Guardar Prompt Global</button>
+      </div>
+      
+      <!-- Lista de Referentes -->
+      <div class="commentor-section">
+        <div class="section-header">
+          <h3>📋 Mis Referentes (<span id="referentes-count">0</span>)</h3>
+          <button class="btn btn-primary btn-sm" id="add-referente">+ Agregar</button>
+        </div>
+        
+        <div id="referentes-list" class="referentes-list">
+          <div class="empty-state">
+            <p>No hay referentes agregados</p>
+            <p class="hint">Agregá perfiles de Instagram o LinkedIn para comentar sus posts</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Acciones -->
+      <div class="commentor-section">
+        <h3>🚀 Acciones</h3>
+        
+        <button class="btn btn-primary btn-large btn-block" id="comment-all-referentes" disabled>
+          🎯 Comentar TODOS los últimos posts
+        </button>
+        
+        <div class="action-buttons">
+          <button class="btn btn-secondary" id="view-comment-history">📊 Ver Historial</button>
+          <button class="btn btn-secondary" id="view-daily-stats">📈 Stats del Día</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: Comentador -->
+    <div id="tab-commentor" class="tab-content">
+      <div class="section-header">
+        <h2>💬 Comentador Inteligente</h2>
+        <p class="hint">Comenta automáticamente en posts de tus referentes con IA</p>
+      </div>
+      
+      <!-- AI Configuration -->
+      <div class="config-section">
+        <h3>🤖 Configuración de IA</h3>
+        
+        <label>
+          <span>Provider:</span>
+          <select id="ai-provider">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT-4)</option>
+          </select>
+        </label>
+        
+        <label>
+          <span>API Key:</span>
+          <div style="display: flex; gap: 5px;">
+            <input type="password" id="ai-api-key" placeholder="sk-ant-... o sk-..." style="flex: 1;">
+            <button type="button" class="btn btn-sm btn-icon" id="toggle-api-key" title="Mostrar">👁️</button>
+            <button type="button" class="btn btn-sm btn-icon" id="paste-api-key" title="Pegar">📋</button>
+          </div>
+        </label>
+        <p class="hint">💡 Tu API key nunca sale de tu navegador (se guarda localmente)</p>
+        
+        <label id="ai-model-container">
+          <span>Modelo:</span>
+          <select id="ai-model">
+            <!-- Options dinámicas según provider -->
+          </select>
+        </label>
+        
+        <button class="btn btn-secondary" id="test-ai-connection">🔌 Probar Conexión</button>
+        <span id="ai-connection-status"></span>
+      </div>
+      
+      <!-- Global Prompt Configuration -->
+      <div class="config-section">
+        <h3>📝 Prompt Global</h3>
+        <p class="hint">Configuración por defecto (se usa si el referente no tiene prompt custom)</p>
+        
+        <label>
+          <span>Tu expertise (separados por coma):</span>
+          <input type="text" id="global-expertise" placeholder="IA, Ventas B2B, Automatización">
+        </label>
+        
+        <label>
+          <span>Objetivo del comentario:</span>
+          <select id="global-objective">
+            <option value="autoridad">Generar Autoridad</option>
+            <option value="networking">Networking / Relación</option>
+            <option value="soft-pitch">Soft Pitch / Oferta</option>
+          </select>
+        </label>
+        
+        <label>
+          <span>Tono:</span>
+          <select id="global-tone">
+            <option value="profesional">Profesional</option>
+            <option value="casual">Casual</option>
+            <option value="tecnico">Técnico</option>
+          </select>
+        </label>
+        
+        <label>
+          <span>Instrucciones adicionales:</span>
+          <textarea id="global-instructions" rows="3" placeholder="Ej: Aporta valor, sé auténtico, max 150 chars, evita emojis excesivos"></textarea>
+        </label>
+        
+        <button class="btn btn-primary" id="save-global-prompt">💾 Guardar Prompt Global</button>
+      </div>
+      
+      <!-- Referentes List -->
+      <div class="section-header">
+        <h3>📋 Mis Referentes (<span id="referentes-count">0</span>)</h3>
+        <button class="btn btn-primary btn-sm" id="add-referente">+ Agregar</button>
+      </div>
+      
+      <div id="referentes-list" class="referentes-list">
+        <div class="empty-state">
+          <p>No tenés referentes cargados todavía</p>
+          <button class="btn btn-primary" id="add-referente-empty">+ Agregar Primer Referente</button>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="comentador-actions">
+        <button class="btn btn-success btn-large btn-block" id="comment-all-referentes" disabled>
+          🚀 Comentar TODOS los últimos posts
+        </button>
+        <p class="hint">Analizará, likeará y comentará cada referente automáticamente</p>
+        
+        <div class="actions-secondary">
+          <button class="btn btn-secondary" id="view-comment-history">📊 Ver Historial</button>
+          <button class="btn btn-secondary" id="view-daily-stats">📈 Estadísticas de Hoy</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab Content: WhatsApp -->
+    <div id="tab-whatsapp" class="tab-content">
+      <div class="section-header">
+        <h2>💬 Extractor de WhatsApp</h2>
+        <p class="hint">Extrae contactos de grupos de WhatsApp Web</p>
+      </div>
+      
+      <div class="whatsapp-instructions">
+        <div class="instruction-card">
+          <div class="instruction-number">1</div>
+          <div class="instruction-text">
+            <strong>Abrí WhatsApp Web</strong>
+            <p>Ve a <a href="https://web.whatsapp.com" target="_blank">web.whatsapp.com</a></p>
+          </div>
+        </div>
+        
+        <div class="instruction-card">
+          <div class="instruction-number">2</div>
+          <div class="instruction-text">
+            <strong>Entrá al grupo</strong>
+            <p>Abrí el grupo del que querés extraer contactos</p>
+          </div>
+        </div>
+        
+        <div class="instruction-card">
+          <div class="instruction-number">3</div>
+          <div class="instruction-text">
+            <strong>Abrí la lista de participantes</strong>
+            <p>Click en el nombre del grupo → Ver participantes</p>
+          </div>
+        </div>
+        
+        <div class="instruction-card">
+          <div class="instruction-number">4</div>
+          <div class="instruction-text">
+            <strong>Iniciá la extracción</strong>
+            <p>Hacé click en el botón de abajo</p>
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary btn-block btn-large" id="start-whatsapp-extraction">
+        🚀 Extraer Contactos del Grupo
+      </button>
+      
+      <div id="whatsapp-progress" class="extraction-progress" style="display: none;">
+        <div class="progress-status" id="whatsapp-progress-status">⏳ Iniciando...</div>
+        <div class="progress-details" id="whatsapp-progress-details">0 contactos encontrados</div>
+      </div>
+      
+      <div id="whatsapp-results" class="extraction-results" style="display: none;">
+        <h3>✅ Extracción Completada</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="whatsapp-total">0</div>
+            <div class="stat-label">Total Contactos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="whatsapp-with-name">0</div>
+            <div class="stat-label">Con Nombre</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="whatsapp-admins">0</div>
+            <div class="stat-label">Admins</div>
+          </div>
+        </div>
+        <p class="success-message">📥 CSV descargado exitosamente</p>
+      </div>
+      
+      <div class="info-box">
+        <h4>ℹ️ Información</h4>
+        <ul>
+          <li>El proceso puede tardar 2-3 minutos según el tamaño del grupo</li>
+          <li>Extrae: nombre, número, estado y si es admin</li>
+          <li>El archivo CSV se descarga automáticamente</li>
+          <li>Funciona con grupos de hasta 1000+ participantes</li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Tab Content: Mi Cuenta -->
+    <div id="tab-account" class="tab-content">
+      <div class="section-header">
+        <h2>👤 Mi Cuenta - Configuración Anti-Ban</h2>
+        <p class="warning-box">⚠️ <strong>IMPORTANTE:</strong> Configurá bien estos límites para evitar que Instagram/LinkedIn te banee.</p>
+      </div>
+      
+      <!-- Quick Presets -->
+      <div class="config-section">
+        <h3>🎯 Presets Rápidos</h3>
+        <div class="preset-buttons">
+          <button class="btn btn-preset" data-preset="ultra-safe">
+            <div class="preset-icon">🛡️</div>
+            <div class="preset-name">Ultra Seguro</div>
+            <div class="preset-desc">Cuenta nueva (<6 meses)</div>
+          </button>
+          <button class="btn btn-preset active" data-preset="conservative">
+            <div class="preset-icon">✅</div>
+            <div class="preset-name">Conservador</div>
+            <div class="preset-desc">Recomendado (default)</div>
+          </button>
+          <button class="btn btn-preset" data-preset="moderate">
+            <div class="preset-icon">⚡</div>
+            <div class="preset-name">Moderado</div>
+            <div class="preset-desc">Cuenta establecida</div>
+          </button>
+          <button class="btn btn-preset" data-preset="aggressive">
+            <div class="preset-icon">⚠️</div>
+            <div class="preset-name">Agresivo</div>
+            <div class="preset-desc">Alto riesgo</div>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Instagram Limits -->
+      <div class="config-section">
+        <h3>📱 Instagram - Límites Diarios</h3>
+        
+        <div class="account-status">
+          <label>
+            <span>Antigüedad de cuenta:</span>
+            <select id="ig-account-age">
+              <option value="new">< 6 meses (⚠️ Mayor cuidado)</option>
+              <option value="medium">6 meses - 1 año</option>
+              <option value="old">Más de 1 año</option>
+            </select>
+          </label>
+          
+          <label>
+            <span>Followers:</span>
+            <select id="ig-followers">
+              <option value="low">< 500</option>
+              <option value="medium">500 - 5K</option>
+              <option value="high">5K - 50K</option>
+              <option value="very-high">> 50K</option>
+            </select>
+          </label>
+        </div>
+        
+        <div class="limits-grid">
+          <div class="limit-item">
+            <label>Comentarios por día:</label>
+            <input type="number" id="ig-comments-day" value="20" min="5" max="100">
+            <span class="hint">Recomendado: 15-25</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Comentarios por hora:</label>
+            <input type="number" id="ig-comments-hour" value="5" min="1" max="20">
+            <span class="hint">Recomendado: 3-7</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Likes por día:</label>
+            <input type="number" id="ig-likes-day" value="100" min="20" max="500">
+            <span class="hint">Recomendado: 80-150</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Likes por hora:</label>
+            <input type="number" id="ig-likes-hour" value="20" min="5" max="80">
+            <span class="hint">Recomendado: 15-30</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Follows por día:</label>
+            <input type="number" id="ig-follows-day" value="50" min="10" max="150">
+            <span class="hint">Recomendado: 30-60</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Follows por hora:</label>
+            <input type="number" id="ig-follows-hour" value="10" min="3" max="30">
+            <span class="hint">Recomendado: 5-15</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>DMs por día:</label>
+            <input type="number" id="ig-dms-day" value="30" min="5" max="100">
+            <span class="hint">Recomendado: 20-40</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>DMs por hora:</label>
+            <input type="number" id="ig-dms-hour" value="5" min="2" max="20">
+            <span class="hint">Recomendado: 3-8</span>
+          </div>
+        </div>
+        
+        <h4>⏱️ Delays entre Acciones (segundos)</h4>
+        <div class="delays-grid">
+          <div class="delay-item">
+            <label>Entre comentarios:</label>
+            <div class="range-inputs">
+              <input type="number" id="ig-delay-comments-min" value="30" min="10" max="180">
+              <span>-</span>
+              <input type="number" id="ig-delay-comments-max" value="90" min="20" max="300">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre likes:</label>
+            <div class="range-inputs">
+              <input type="number" id="ig-delay-likes-min" value="10" min="5" max="60">
+              <span>-</span>
+              <input type="number" id="ig-delay-likes-max" value="30" min="10" max="120">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre follows:</label>
+            <div class="range-inputs">
+              <input type="number" id="ig-delay-follows-min" value="20" min="10" max="90">
+              <span>-</span>
+              <input type="number" id="ig-delay-follows-max" value="60" min="20" max="180">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre DMs:</label>
+            <div class="range-inputs">
+              <input type="number" id="ig-delay-dms-min" value="40" min="20" max="120">
+              <span>-</span>
+              <input type="number" id="ig-delay-dms-max" value="120" min="40" max="300">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- LinkedIn Limits -->
+      <div class="config-section">
+        <h3>💼 LinkedIn - Límites Diarios</h3>
+        <p class="hint">💡 LinkedIn es MÁS estricto que Instagram. Sé conservador.</p>
+        
+        <div class="limits-grid">
+          <div class="limit-item">
+            <label>Comentarios por día:</label>
+            <input type="number" id="li-comments-day" value="15" min="5" max="50">
+            <span class="hint">Recomendado: 10-20</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Comentarios por hora:</label>
+            <input type="number" id="li-comments-hour" value="3" min="1" max="10">
+            <span class="hint">Recomendado: 2-5</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Likes por día:</label>
+            <input type="number" id="li-likes-day" value="50" min="10" max="150">
+            <span class="hint">Recomendado: 40-80</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Likes por hora:</label>
+            <input type="number" id="li-likes-hour" value="10" min="3" max="30">
+            <span class="hint">Recomendado: 8-15</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Conexiones por día:</label>
+            <input type="number" id="li-connections-day" value="30" min="10" max="80">
+            <span class="hint">Recomendado: 20-40</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Conexiones por hora:</label>
+            <input type="number" id="li-connections-hour" value="5" min="2" max="15">
+            <span class="hint">Recomendado: 3-8</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Mensajes por día:</label>
+            <input type="number" id="li-messages-day" value="20" min="5" max="60">
+            <span class="hint">Recomendado: 15-30</span>
+          </div>
+          
+          <div class="limit-item">
+            <label>Mensajes por hora:</label>
+            <input type="number" id="li-messages-hour" value="4" min="2" max="12">
+            <span class="hint">Recomendado: 3-6</span>
+          </div>
+        </div>
+        
+        <h4>⏱️ Delays entre Acciones (segundos)</h4>
+        <div class="delays-grid">
+          <div class="delay-item">
+            <label>Entre comentarios:</label>
+            <div class="range-inputs">
+              <input type="number" id="li-delay-comments-min" value="40" min="20" max="180">
+              <span>-</span>
+              <input type="number" id="li-delay-comments-max" value="100" min="40" max="300">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre likes:</label>
+            <div class="range-inputs">
+              <input type="number" id="li-delay-likes-min" value="15" min="8" max="90">
+              <span>-</span>
+              <input type="number" id="li-delay-likes-max" value="40" min="20" max="180">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre conexiones:</label>
+            <div class="range-inputs">
+              <input type="number" id="li-delay-connections-min" value="30" min="15" max="120">
+              <span>-</span>
+              <input type="number" id="li-delay-connections-max" value="90" min="30" max="240">
+            </div>
+          </div>
+          
+          <div class="delay-item">
+            <label>Entre mensajes:</label>
+            <div class="range-inputs">
+              <input type="number" id="li-delay-messages-min" value="50" min="25" max="150">
+              <span>-</span>
+              <input type="number" id="li-delay-messages-max" value="140" min="60" max="300">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Behavior Settings -->
+      <div class="config-section">
+        <h3>🕐 Horarios & Comportamiento Humano</h3>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="active-hours-enabled" checked>
+          <span>Activar horarios permitidos</span>
+        </label>
+        
+        <div id="active-hours-settings" class="sub-settings">
+          <label>
+            <span>Inicio:</span>
+            <input type="time" id="active-hours-start" value="09:00">
+          </label>
+          <label>
+            <span>Fin:</span>
+            <input type="time" id="active-hours-end" value="21:00">
+          </label>
+        </div>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="breaks-enabled" checked>
+          <span>Activar pausas obligatorias</span>
+        </label>
+        
+        <div id="breaks-settings" class="sub-settings">
+          <label class="checkbox">
+            <input type="checkbox" id="lunch-break" checked>
+            <span>Pausa almuerzo (12:00 - 14:00)</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="evening-break">
+            <span>Pausa tarde (18:00 - 18:30)</span>
+          </label>
+        </div>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="random-breaks" checked>
+          <span>Pausas aleatorias (cada 60-90 min, pausa de 3-7 min)</span>
+        </label>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="weekend-mode" checked>
+          <span>Simular fines de semana (reducir actividad 50%)</span>
+        </label>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="warmup-mode">
+          <span>Warm-up gradual (primeros 7 días: 50% de límites)</span>
+        </label>
+      </div>
+      
+      <!-- Usage Dashboard -->
+      <div class="config-section">
+        <h3>📊 Uso de Hoy</h3>
+        
+        <div class="usage-platform">
+          <h4>📱 Instagram</h4>
+          <div class="usage-bars">
+            <div class="usage-item">
+              <span class="usage-label">Comentarios:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-ig-comments" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-ig-comments-text">0/20</span>
+            </div>
+            
+            <div class="usage-item">
+              <span class="usage-label">Likes:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-ig-likes" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-ig-likes-text">0/100</span>
+            </div>
+            
+            <div class="usage-item">
+              <span class="usage-label">Follows:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-ig-follows" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-ig-follows-text">0/50</span>
+            </div>
+            
+            <div class="usage-item">
+              <span class="usage-label">DMs:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-ig-dms" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-ig-dms-text">0/30</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="usage-platform">
+          <h4>💼 LinkedIn</h4>
+          <div class="usage-bars">
+            <div class="usage-item">
+              <span class="usage-label">Comentarios:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-li-comments" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-li-comments-text">0/15</span>
+            </div>
+            
+            <div class="usage-item">
+              <span class="usage-label">Likes:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-li-likes" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-li-likes-text">0/50</span>
+            </div>
+            
+            <div class="usage-item">
+              <span class="usage-label">Conexiones:</span>
+              <div class="usage-bar-container">
+                <div class="usage-bar" id="usage-li-connections" style="width: 0%"></div>
+              </div>
+              <span class="usage-text" id="usage-li-connections-text">0/30</span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="usage-alerts"></div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="config-actions">
+        <button class="btn btn-primary btn-block" id="save-account-config">💾 Guardar Configuración</button>
+        <button class="btn btn-secondary btn-block" id="reset-account-config">🔄 Restaurar Recomendados</button>
+      </div>
+    </div>
+
+    <!-- Tab Content: Config -->
+    <div id="tab-config" class="tab-content">
+      <div class="section-header">
+        <h2>⚙️ Configuración</h2>
+      </div>
+      
+      <!-- Google Sheets Integration -->
+      <div class="config-section">
+        <h3>📊 Google Sheets Integration</h3>
+        <p class="hint">Conectá tu cuenta de Google para sincronizar todos los datos en un spreadsheet</p>
+        
+        <div id="sheets-disconnected" class="sheets-status">
+          <div class="status-box">
+            <span class="status-icon">❌</span>
+            <span class="status-text">No conectado</span>
+          </div>
+          
+          <button class="btn btn-primary btn-large" id="connect-sheets">
+            🔗 Conectar con Google Sheets
+          </button>
+          
+          <div class="sheets-benefits">
+            <p><strong>💡 Beneficios:</strong></p>
+            <ul>
+              <li>✅ Todos tus datos en un solo lugar</li>
+              <li>✅ Visualización y análisis fácil</li>
+              <li>✅ Exportar a CSV/Excel cuando quieras</li>
+              <li>✅ Backup automático en Google Drive</li>
+              <li>✅ Compartir con tu equipo</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div id="sheets-connected" class="sheets-status" style="display: none;">
+          <div class="status-box connected">
+            <span class="status-icon">✅</span>
+            <span class="status-text">Conectado</span>
+          </div>
+          
+          <div class="sheets-info">
+            <p><strong>Spreadsheet:</strong> <span id="sheets-name">Social Analyzer Data</span></p>
+            <p><strong>Última sincronización:</strong> <span id="sheets-last-sync">Hace 5 min</span></p>
+          </div>
+          
+          <div class="sheets-stats">
+            <div class="stat-item">
+              <div class="stat-number" id="sheets-stat-referentes">0</div>
+              <div class="stat-label">Referentes</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="sheets-stat-prospects">0</div>
+              <div class="stat-label">Prospects</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="sheets-stat-comments">0</div>
+              <div class="stat-label">Comentarios</div>
+            </div>
+          </div>
+          
+          <div class="sheets-actions">
+            <button class="btn btn-secondary" id="open-sheets">📊 Abrir Spreadsheet</button>
+            <button class="btn btn-secondary" id="sync-sheets">🔄 Sincronizar Ahora</button>
+            <button class="btn btn-danger" id="disconnect-sheets">❌ Desconectar</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Rest of config sections -->
+      <!-- Anti-Ban Configuration -->
+      <div class="config-section">
+        <h3>🛡️ Anti-Ban & Delays</h3>
+        <p class="hint">Configurá delays para evitar bans en todas las plataformas</p>
+        
+        <div class="config-group">
+          <h4>⏱️ Delays entre Acciones (segundos)</h4>
+          
+          <label class="delay-config">
+            <span>Entre comentarios:</span>
+            <div class="range-input">
+              <input type="number" id="delay-comments-min" value="30" min="10" max="300">
+              <span>-</span>
+              <input type="number" id="delay-comments-max" value="90" min="10" max="300">
+            </div>
+          </label>
+          
+          <label class="delay-config">
+            <span>Entre likes:</span>
+            <div class="range-input">
+              <input type="number" id="delay-likes-min" value="10" min="5" max="120">
+              <span>-</span>
+              <input type="number" id="delay-likes-max" value="30" min="5" max="120">
+            </div>
+          </label>
+          
+          <label class="delay-config">
+            <span>Entre cargar páginas:</span>
+            <div class="range-input">
+              <input type="number" id="delay-pages-min" value="2" min="1" max="30">
+              <span>-</span>
+              <input type="number" id="delay-pages-max" value="5" min="1" max="30">
+            </div>
+          </label>
+        </div>
+        
+        <div class="config-group">
+          <h4>📊 Límites Diarios</h4>
+          
+          <div class="limits-grid">
+            <div class="limit-card">
+              <h5>📱 Instagram</h5>
+              <label>
+                <span>Comentarios:</span>
+                <input type="number" id="limit-ig-comments" value="20" min="1" max="100">
+              </label>
+              <label>
+                <span>Likes:</span>
+                <input type="number" id="limit-ig-likes" value="100" min="1" max="500">
+              </label>
+              <label>
+                <span>Follows:</span>
+                <input type="number" id="limit-ig-follows" value="50" min="1" max="200">
+              </label>
+            </div>
+            
+            <div class="limit-card">
+              <h5>💼 LinkedIn</h5>
+              <label>
+                <span>Comentarios:</span>
+                <input type="number" id="limit-li-comments" value="15" min="1" max="50">
+              </label>
+              <label>
+                <span>Likes:</span>
+                <input type="number" id="limit-li-likes" value="50" min="1" max="200">
+              </label>
+              <label>
+                <span>Conexiones:</span>
+                <input type="number" id="limit-li-follows" value="30" min="1" max="100">
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="config-group">
+          <h4>🕐 Horarios Permitidos</h4>
+          
+          <label class="checkbox">
+            <input type="checkbox" id="active-hours-enabled" checked>
+            <span>Activar horarios permitidos</span>
+          </label>
+          
+          <div id="active-hours-config" class="sub-config">
+            <label>
+              <span>Inicio:</span>
+              <input type="time" id="active-hours-start" value="09:00">
+            </label>
+            <label>
+              <span>Fin:</span>
+              <input type="time" id="active-hours-end" value="21:00">
+            </label>
+            <p class="hint">Solo ejecutará acciones en este horario</p>
+          </div>
+        </div>
+        
+        <div class="config-group">
+          <h4>☕ Pausas Obligatorias</h4>
+          
+          <label class="checkbox">
+            <input type="checkbox" id="breaks-enabled" checked>
+            <span>Activar pausas automáticas</span>
+          </label>
+          
+          <div id="breaks-config" class="sub-config">
+            <label class="checkbox">
+              <input type="checkbox" id="lunch-break" checked>
+              <span>Pausa almuerzo (12:00 - 14:00)</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="evening-break">
+              <span>Pausa tarde (18:00 - 18:30)</span>
+            </label>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary btn-block" id="save-antiban-config">💾 Guardar Configuración Anti-Ban</button>
+      </div>
+      
+      <div class="config-section">
+        <h3>🤖 Automatización</h3>
+        <label class="checkbox">
+          <input type="checkbox" id="auto-close-tabs" checked>
+          <span>Cerrar pestañas automáticamente al finalizar</span>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="desktop-notifications" checked>
+          <span>Notificaciones desktop</span>
+        </label>
+      </div>
+      
+      <div class="config-section">
+        <h3>📊 Análisis</h3>
+        <label>
+          <span>Posts por defecto:</span>
+          <input type="number" id="default-posts" value="30" min="1" max="100">
+        </label>
+        <label>
+          <span>Delay entre posts (ms):</span>
+          <input type="number" id="post-delay" value="2000" min="1000" max="5000">
+        </label>
+      </div>
+      
+      <div class="config-section">
+        <h3>💾 Datos</h3>
+        <button class="btn btn-secondary btn-block" id="export-data">📥 Exportar Todos los Datos</button>
+        <button class="btn btn-danger btn-block" id="clear-data">🗑️ Limpiar Todos los Datos</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Agregar Referente -->
+  <div id="modal-add-referente" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>➕ Agregar Referente</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <span>Plataforma:</span>
+          <select id="new-ref-platform">
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+          </select>
+        </label>
+        
+        <label>
+          <span>Username (sin @):</span>
+          <input type="text" id="new-ref-username" placeholder="garyvee">
+        </label>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="new-ref-use-custom">
+          <span>Usar prompt custom (opcional)</span>
+        </label>
+        
+        <div id="custom-prompt-container" style="display: none;">
+          <label>
+            <span>Prompt custom:</span>
+            <textarea id="new-ref-custom-prompt" rows="4" placeholder="Instrucciones específicas para comentar los posts de este referente..."></textarea>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-add-referente">Cancelar</button>
+        <button class="btn btn-primary" id="confirm-add-referente">Agregar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Editar Referente -->
+  <div id="modal-edit-referente" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>✏️ Editar Referente</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <span>Username:</span>
+          <input type="text" id="edit-ref-username" disabled>
+        </label>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="edit-ref-use-custom">
+          <span>Usar prompt custom</span>
+        </label>
+        
+        <div id="edit-custom-prompt-container" style="display: none;">
+          <label>
+            <span>Prompt custom:</span>
+            <textarea id="edit-ref-custom-prompt" rows="4"></textarea>
+          </label>
+        </div>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="edit-ref-enabled" checked>
+          <span>Activo (comentar automáticamente)</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-edit-referente">Cancelar</button>
+        <button class="btn btn-primary" id="confirm-edit-referente">Guardar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Historial de Comentarios -->
+  <div id="modal-comment-history" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📜 Historial de Comentarios</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="history-filters">
+          <select id="history-filter-platform">
+            <option value="all">Todas las plataformas</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+          </select>
+          
+          <select id="history-filter-days">
+            <option value="7">Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="all">Todo el historial</option>
+          </select>
+        </div>
+        
+        <div id="comment-history-list" class="comment-history-list">
+          <div class="empty-state">
+            <p>No hay comentarios en el historial</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="export-history-csv">📥 Exportar CSV</button>
+        <button class="btn btn-danger" id="clear-history">🗑️ Limpiar Historial</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Agregar Competidor -->
+  <div id="modal-add" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>➕ Agregar Competidor</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <span>Username (sin @):</span>
+          <input type="text" id="new-username" placeholder="soypablogio">
+        </label>
+        <p class="small">Para LinkedIn, usá el username del perfil (ej: carlos-smith)</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-add">Cancelar</button>
+        <button class="btn btn-primary" id="confirm-add">Agregar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Configurar Análisis -->
+  <div id="modal-analyze" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="analyze-title">📊 Analizar Competidor</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>¿Cuántos posts querés analizar?</p>
+        <input type="number" id="analyze-count" value="30" min="1" max="100" class="input-large">
+        
+        <div class="quick-options">
+          <button class="btn btn-sm" data-count="10">Rápido: 10</button>
+          <button class="btn btn-sm" data-count="30">Normal: 30</button>
+          <button class="btn btn-sm" data-count="100">Todo: 100</button>
+        </div>
+        
+        <p class="small warning">⚠️ La extensión abrirá una pestaña en background y analizará automáticamente. Esto puede tomar unos minutos.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-analyze">Cancelar</button>
+        <button class="btn btn-primary" id="confirm-analyze">🚀 Iniciar Análisis</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Ver Resumen -->
+  <div id="modal-summary" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="summary-title">📈 Resumen</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="summary-content">
+        <div class="loading">Cargando...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="download-summary-html">📥 Descargar HTML</button>
+        <button class="btn btn-secondary" id="close-summary">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Historial -->
+  <div id="modal-history" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="history-title">📜 Historial</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="history-content">
+        <div class="loading">Cargando...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="close-history">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Agregar/Editar Referente -->
+  <div id="modal-referente" class="modal">
+    <div class="modal-content modal-wide">
+      <div class="modal-header">
+        <h3 id="referente-modal-title">➕ Agregar Referente</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <span>Plataforma:</span>
+          <select id="referente-platform">
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+          </select>
+        </label>
+        
+        <label>
+          <span>Username (sin @):</span>
+          <input type="text" id="referente-username" placeholder="garyvee">
+        </label>
+        
+        <label class="checkbox">
+          <input type="checkbox" id="referente-use-custom-prompt">
+          <span>Usar prompt custom (opcional)</span>
+        </label>
+        
+        <div id="custom-prompt-container" style="display: none;">
+          <label>
+            <span>Prompt Custom:</span>
+            <textarea id="referente-custom-prompt" rows="4" placeholder="Instrucciones específicas para comentar los posts de este referente. Ej: 'Comentá desde tu experiencia en automatización. Mencioná casos B2B. Tono casual.'"></textarea>
+          </label>
+          <p class="hint">Si no especificás, se usará el prompt global</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-referente">Cancelar</button>
+        <button class="btn btn-primary" id="save-referente">Guardar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Historial de Comentarios -->
+  <div id="modal-comment-history" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>📜 Historial de Comentarios</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="history-filters">
+          <select id="history-platform-filter">
+            <option value="all">Todas las Plataformas</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+          </select>
+          
+          <select id="history-date-filter">
+            <option value="7">Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="all">Todo el historial</option>
+          </select>
+        </div>
+        
+        <div id="history-list" class="history-list">
+          <div class="loading">Cargando historial...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="export-history-csv">📥 Exportar CSV</button>
+        <button class="btn btn-danger" id="clear-history">🗑️ Limpiar Historial</button>
+        <button class="btn btn-primary" id="close-comment-history">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal: Estadísticas Diarias -->
+  <div id="modal-daily-stats" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📈 Estadísticas de Hoy</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="daily-stats-content">
+          <div class="loading">Cargando estadísticas...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="reset-daily-counters">🔄 Resetear Contadores</button>
+        <button class="btn btn-primary" id="close-daily-stats">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+  
+  <script src="../shared/storage.js"></script>
+  <script src="../shared/delay-manager.js"></script>
+  <script src="../shared/sheets-connector.js"></script>
+  <script src="../shared/comment-orchestrator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

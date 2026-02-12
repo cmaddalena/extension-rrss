@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Social Analyzer Pro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 350px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .header {
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+    
+    .main-action {
+      padding: 20px;
+    }
+    
+    .btn-dashboard {
+      width: 100%;
+      padding: 15px;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .btn-dashboard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    .quick-stats {
+      padding: 0 20px 20px;
+    }
+    
+    .quick-stats h3 {
+      font-size: 14px;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .stat-label {
+      font-size: 13px;
+    }
+    
+    .stat-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .quick-actions {
+      padding: 0 20px 20px;
+    }
+    
+    .quick-actions h3 {
+      font-size: 14px;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+    
+    .action-btn {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .action-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateX(4px);
+    }
+    
+    .action-icon {
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🎯</div>
+    <div class="title">Social Analyzer Pro</div>
+    <div class="subtitle">Automatización inteligente</div>
+  </div>
+  
+  <div class="main-action">
+    <button class="btn-dashboard" id="open-dashboard">
+      🚀 Abrir Dashboard
+    </button>
+  </div>
+  
+  <div class="quick-stats">
+    <h3>📊 Uso de Hoy</h3>
+    <div class="stat-row">
+      <span class="stat-label">Comentarios:</span>
+      <span class="stat-value" id="stat-comments">0/20</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Likes:</span>
+      <span class="stat-value" id="stat-likes">0/100</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Follows:</span>
+      <span class="stat-value" id="stat-follows">0/50</span>
+    </div>
+  </div>
+  
+  <div class="quick-actions">
+    <h3>⚡ Acciones Rápidas</h3>
+    <button class="action-btn" id="quick-comment">
+      <span class="action-icon">💬</span>
+      <span>Comentar Ahora</span>
+    </button>
+    <button class="action-btn" id="quick-extract">
+      <span class="action-icon">🔍</span>
+      <span>Extraer Leads</span>
+    </button>
+  </div>
+  
+  <script src="../shared/delay-manager.js"></script>
+  <script src="popup-mini.js"></script>
+</body>
+</html>

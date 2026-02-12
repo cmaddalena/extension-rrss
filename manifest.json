@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "Social Media Analyzer Pro",
+  "version": "7.8.0",
+  "description": "Analiza competidores en Instagram y LinkedIn + Extrae contactos de grupos de WhatsApp",
+  
+  "permissions": [
+    "storage",
+    "tabs",
+    "notifications",
+    "scripting",
+    "identity"
+  ],
+  
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.linkedin.com/*",
+    "*://web.whatsapp.com/*",
+    "https://sheets.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*"
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup-mini.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["*://*.instagram.com/*"],
+      "js": ["content-scripts/instagram.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["content-scripts/linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://web.whatsapp.com/*"],
+      "js": ["content-scripts/whatsapp.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  
+  "oauth2": {
+    "client_id": "722857423214-5mfoo13dca8bg605ftpsrqhqhr4j6gma.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  }
+}

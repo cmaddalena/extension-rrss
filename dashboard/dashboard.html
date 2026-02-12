@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Analyzer Pro</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo"><span class="logo-icon">🎯</span><span class="logo-text">Social Analyzer</span></div>
+    </div>
+    <div class="sidebar-menu">
+      <a href="#" class="menu-item active" data-view="home"><span class="menu-icon">🏠</span><span class="menu-text">Dashboard</span></a>
+      <a href="#" class="menu-item" data-view="crm"><span class="menu-icon">👥</span><span class="menu-text">CRM</span></a>
+      <a href="#" class="menu-item" data-view="analyzer"><span class="menu-icon">📊</span><span class="menu-text">Analyzer</span></a>
+      <a href="#" class="menu-item" data-view="commentor"><span class="menu-icon">💬</span><span class="menu-text">Comentador IA</span></a>
+      <a href="#" class="menu-item" data-view="campaigns"><span class="menu-icon">📣</span><span class="menu-text">Campañas</span></a>
+      <a href="#" class="menu-item" data-view="config"><span class="menu-icon">⚙️</span><span class="menu-text">Configuración</span></a>
+      
+      <div class="menu-divider"></div>
+      <div class="menu-section-title">🔮 Próximamente</div>
+      <a href="#" class="menu-item disabled" data-view="listening"><span class="menu-icon">📡</span><span class="menu-text">Social Listening</span><span class="badge-soon">Soon</span></a>
+      <a href="#" class="menu-item disabled" data-view="scheduler"><span class="menu-icon">📅</span><span class="menu-text">Scheduler</span><span class="badge-soon">Soon</span></a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <header class="top-header"><h1 id="page-title">Dashboard</h1></header>
+    
+    <div class="views-container">
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- HOME                                                           -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-home" class="view active">
+        <!-- Setup inicial -->
+        <div id="setup-wizard" class="dashboard-card" style="display:none;">
+          <h3>🚀 Configuración Inicial</h3>
+          <p>Para empezar, necesitamos configurar algunas cosas:</p>
+          <div class="setup-steps">
+            <div class="setup-step" id="step-sheets">
+              <span class="step-icon">📊</span>
+              <span class="step-text">Conectar Google Sheets</span>
+              <span class="step-status">⏳</span>
+            </div>
+            <div class="setup-step" id="step-ai">
+              <span class="step-icon">🤖</span>
+              <span class="step-text">Configurar API de IA</span>
+              <span class="step-status">⏳</span>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-large" id="start-setup">🔧 Comenzar Setup</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-content"><div class="stat-number" id="stat-personas">0</div><div class="stat-label">Personas</div></div></div>
+          <div class="stat-card pink"><div class="stat-icon">📋</div><div class="stat-content"><div class="stat-number" id="stat-listas">0</div><div class="stat-label">Listas</div></div></div>
+          <div class="stat-card blue"><div class="stat-icon">📣</div><div class="stat-content"><div class="stat-number" id="stat-campaigns">0</div><div class="stat-label">Campañas</div></div></div>
+          <div class="stat-card orange"><div class="stat-icon">💬</div><div class="stat-content"><div class="stat-number" id="stat-comments">0</div><div class="stat-label">Comentarios</div></div></div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        <div class="dashboard-card">
+          <h3>⚡ Acciones Rápidas</h3>
+          <div class="quick-actions">
+            <button class="quick-action-btn" id="quick-add-person"><span class="qa-icon">➕</span><span class="qa-text">Agregar Persona</span></button>
+            <button class="quick-action-btn" id="quick-import"><span class="qa-icon">📲</span><span class="qa-text">Importar</span></button>
+            <button class="quick-action-btn" data-view="analyzer"><span class="qa-icon">📊</span><span class="qa-text">Analyzer</span></button>
+            <button class="quick-action-btn" data-view="campaigns"><span class="qa-icon">📣</span><span class="qa-text">Campaña</span></button>
+          </div>
+        </div>
+
+        <!-- Listas resumen -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>📋 Mis Listas</h3>
+            <button class="btn btn-primary btn-small" id="new-list-btn">➕ Nueva</button>
+          </div>
+          <div id="home-listas" class="listas-grid"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- CRM                                                            -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-crm" class="view">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>👥 CRM de Personas</h3>
+            <div class="btn-group">
+              <button class="btn btn-secondary" id="import-btn">📲 Importar</button>
+              <button class="btn btn-primary" id="add-person-btn">➕ Agregar</button>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="filters-bar">
+            <input type="text" id="crm-search" class="form-control" placeholder="🔍 Buscar...">
+            <select id="crm-filter-platform" class="form-control">
+              <option value="">Todas</option>
+              <option value="instagram">📱 Instagram</option>
+              <option value="linkedin">💼 LinkedIn</option>
+              <option value="whatsapp">📲 WhatsApp</option>
+            </select>
+            <select id="crm-filter-list" class="form-control">
+              <option value="">Todas las listas</option>
+            </select>
+          </div>
+
+          <!-- Tabla -->
+          <div class="table-container">
+            <table class="data-table" id="crm-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="select-all"></th>
+                  <th>Nombre</th>
+                  <th>Username</th>
+                  <th>Plataforma</th>
+                  <th>Lista</th>
+                  <th>Origen</th>
+                  <th>Interacciones</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="crm-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Acciones masivas -->
+          <div id="bulk-actions" class="bulk-actions" style="display:none;">
+            <span id="selected-count">0</span>
+            <button class="btn btn-secondary" id="bulk-move">📋 Mover a lista</button>
+            <button class="btn btn-danger" id="bulk-delete">🗑️ Eliminar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- ANALYZER                                                       -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-analyzer" class="view">
+        <div class="dashboard-card">
+          <h3>📊 Analizador de Perfiles</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Plataforma:</label>
+              <select id="analyzer-platform" class="form-control">
+                <option value="instagram">📱 Instagram</option>
+                <option value="linkedin">💼 LinkedIn</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Username:</label>
+              <input type="text" id="analyzer-username" class="form-control" placeholder="ej: garyvee">
+            </div>
+            <div class="form-group">
+              <label>Posts:</label>
+              <input type="number" id="analyzer-posts" class="form-control" value="10" min="1" max="50" style="width:70px;">
+            </div>
+          </div>
+
+          <div class="form-row options-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="analyzer-skip-pinned">
+              Saltar primeros <input type="number" id="analyzer-skip-count" class="form-control inline-input" value="3" style="width:50px;"> posts
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="analyzer-add-crm" checked>
+              Agregar al CRM
+            </label>
+            <div class="form-group" id="analyzer-list-group" style="display:none;">
+              <label>Lista:</label>
+              <select id="analyzer-list" class="form-control"></select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary btn-large" id="start-analyzer">🔍 Analizar</button>
+          </div>
+
+          <div id="analyzer-status" class="status-text"></div>
+          <div id="analyzer-progress" class="progress-container" style="display:none;">
+            <div class="progress-bar-container"><div class="progress-bar" id="analyzer-bar"></div></div>
+            <span id="analyzer-progress-text">0/0</span>
+          </div>
+        </div>
+
+        <!-- Resultados -->
+        <div id="analyzer-results" class="dashboard-card" style="display:none;">
+          <div class="card-header">
+            <h3>📊 <span id="result-username">@user</span></h3>
+            <button class="btn btn-secondary" id="download-csv">📥 CSV</button>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card purple"><div class="metric-value" id="res-posts">0</div><div class="metric-label">Posts</div></div>
+            <div class="metric-card pink"><div class="metric-value" id="res-likes">0</div><div class="metric-label">Total Likes</div></div>
+            <div class="metric-card blue"><div class="metric-value" id="res-avg">0</div><div class="metric-label">Promedio</div></div>
+            <div class="metric-card green"><div class="metric-value" id="res-week">0</div><div class="metric-label">Posts/Semana</div></div>
+          </div>
+          <div id="analyzer-heatmap" class="heatmap-container"></div>
+          <div id="analyzer-top-posts"></div>
+        </div>
+
+        <!-- Extractor de Likers/Comentadores -->
+        <div class="dashboard-card">
+          <h3>❤️ Extraer Likers/Comentadores de Post</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Extraer:</label>
+              <select id="extract-type" class="form-control">
+                <option value="likers">❤️ Solo Likers</option>
+                <option value="commenters">💬 Solo Comentadores</option>
+                <option value="both">❤️💬 Ambos</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Agregar a lista:</label>
+              <select id="extract-target-list" class="form-control"></select>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button class="btn btn-primary" id="extract-from-post">❤️ Extraer del Post Actual</button>
+          </div>
+          
+          <div id="extract-status" class="status-text"></div>
+          
+          <div class="help-box">
+            <strong>📋 Pasos:</strong>
+            <ol>
+              <li>Abrí un <strong>post de Instagram</strong> en otra pestaña (URL o modal)</li>
+              <li>Asegurate que el post tenga likes visibles (número o "Les gusta a...")</li>
+              <li>Si no responde, <strong>refrescá la página (F5)</strong> y esperá que cargue</li>
+              <li>Volvé acá y clickeá "Extraer del Post Actual"</li>
+            </ol>
+            <p><em>💡 La extensión usa la pestaña de Instagram que ya tenés abierta</em></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- COMENTADOR                                                     -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-commentor" class="view">
+        <div class="view-grid">
+          <!-- Config IA -->
+          <div class="dashboard-card">
+            <h3>🤖 Configuración IA</h3>
+            <div class="form-group">
+              <label>Provider:</label>
+              <select id="ai-provider" class="form-control">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>API Key:</label>
+              <input type="password" id="ai-key" class="form-control" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+              <label>Tu expertise:</label>
+              <input type="text" id="ai-expertise" class="form-control" placeholder="Marketing, Ventas, etc">
+            </div>
+            <button class="btn btn-primary" id="save-ai">💾 Guardar</button>
+            <div id="ai-status" class="status-text"></div>
+          </div>
+
+          <!-- Ejecutar -->
+          <div class="dashboard-card">
+            <h3>🚀 Comentar Posts</h3>
+            <div class="form-group">
+              <label>Lista a comentar:</label>
+              <select id="commentor-list" class="form-control"></select>
+            </div>
+            <div class="commentor-status-box">
+              <div id="commentor-icon">⏸️</div>
+              <div><strong id="commentor-state">Detenido</strong><br><span id="commentor-detail">Seleccioná una lista</span></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary btn-large" id="start-commentor">▶️ Iniciar</button>
+              <button class="btn btn-danger" id="stop-commentor" style="display:none;">⏹️ Detener</button>
+            </div>
+            <div id="commentor-log" class="commentor-log"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- CAMPAÑAS                                                       -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-campaigns" class="view">
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>📣 Campañas de Mensajes</h3>
+            <button class="btn btn-primary" id="new-campaign-btn">➕ Nueva Campaña</button>
+          </div>
+          <div id="campaigns-list"></div>
+        </div>
+
+       <div id="campaign-detail" class="dashboard-card" style="display:none;">
+          <div class="card-header">
+            <h3 id="campaign-detail-name">Campaña</h3>
+            <div class="btn-group">
+              <button class="btn btn-primary" id="run-campaign">▶️ Ejecutar</button>
+              <button class="btn btn-danger" id="stop-campaign" style="display:none;">⏹️ Detener</button>
+              <button class="btn btn-secondary" id="close-campaign-detail">✕</button>
+            </div>
+          </div>
+          
+          <div class="campaign-stats">
+            <div class="cs-item"><span class="cs-number" id="camp-total">0</span><span class="cs-label">Total</span></div>
+            <div class="cs-item"><span class="cs-number" id="camp-sent">0</span><span class="cs-label">Enviados</span></div>
+            <div class="cs-item"><span class="cs-number" id="camp-pending">0</span><span class="cs-label">Pendientes</span></div>
+            <div class="cs-item"><span class="cs-number" id="camp-failed">0</span><span class="cs-label">Fallidos</span></div>
+          </div>
+
+          <div class="form-group" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span>📝 Mensaje de la campaña:</span>
+              <button class="btn btn-primary btn-small" id="save-campaign-message">💾 Guardar Cambios</button>
+            </label>
+            <div class="variables-hint">Variables: <span class="var-tag" data-var="{nombre}">{nombre}</span> <span class="var-tag" data-var="{username}">{username}</span></div>
+            <textarea id="campaign-detail-message" class="form-control" rows="3"></textarea>
+          </div>
+
+          <div id="campaign-log" class="commentor-log"></div>
+          
+          <h4 style="margin-top: 20px;">📋 Destinatarios</h4>
+          <div id="campaign-recipients" class="recipients-list"></div>
+        </div>
+
+        <!-- Form nueva campaña -->
+        <div id="new-campaign-form" class="dashboard-card" style="display:none;">
+          <h3>➕ Nueva Campaña</h3>
+          <div class="form-group">
+            <label>Nombre:</label>
+            <input type="text" id="camp-name" class="form-control" placeholder="Campaña Enero">
+          </div>
+          <div class="form-group">
+            <label>Lista destino:</label>
+            <select id="camp-list" class="form-control"></select>
+            <small class="info-text">La plataforma se detecta automáticamente de la lista.</small>
+          </div>
+          <div class="form-group">
+            <label>Mensaje:</label>
+            <div class="variables-hint">Variables: <span class="var-tag" data-var="{nombre}">{nombre}</span> <span class="var-tag" data-var="{username}">{username}</span></div>
+            <textarea id="camp-message" class="form-control" rows="4" placeholder="Hola {nombre}, vi tu perfil..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Delay (seg):</label>
+              <input type="number" id="camp-delay" class="form-control" value="60" min="30">
+            </div>
+            <div class="form-group">
+              <label>Límite/día:</label>
+              <input type="number" id="camp-limit" class="form-control" value="20" min="1" max="50">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-secondary" id="cancel-campaign">Cancelar</button>
+            <button class="btn btn-primary" id="save-campaign">💾 Crear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- CONFIG                                                         -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div id="view-config" class="view">
+        <!-- Sheets -->
+        <div class="dashboard-card">
+          <h3>📊 Google Sheets</h3>
+          <div id="sheets-not-connected">
+            <p>Conectá Google Sheets para sincronizar tu CRM automáticamente.</p>
+            <p><small>Extension ID: <code id="ext-id"></code></small></p>
+            <button class="btn btn-primary" id="connect-sheets">🔗 Conectar Google Sheets</button>
+          </div>
+          <div id="sheets-connected" style="display:none;">
+            <div class="success-box">✅ Conectado</div>
+            <input type="text" id="sheet-id" class="form-control" readonly>
+            <div class="form-actions">
+              <button class="btn btn-secondary" id="open-sheet">📊 Abrir Sheet</button>
+              <button class="btn btn-secondary" id="sync-sheet">🔄 Sincronizar Ahora</button>
+              <button class="btn btn-danger" id="disconnect-sheets">🔌 Desconectar</button>
+            </div>
+          </div>
+          <div id="sheets-status" class="status-text"></div>
+        </div>
+
+        <!-- AI Config -->
+        <div class="dashboard-card">
+          <h3>🤖 Configuración de IA</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Provider:</label>
+              <select id="config-ai-provider" class="form-control">
+                <option value="openai">OpenAI (GPT-4)</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>API Key:</label>
+              <input type="password" id="config-ai-key" class="form-control" placeholder="sk-...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tu expertise (para comentarios):</label>
+            <input type="text" id="config-ai-expertise" class="form-control" placeholder="Marketing Digital, Ventas B2B, etc.">
+          </div>
+          <button class="btn btn-primary" id="save-ai-config-btn">💾 Guardar IA</button>
+        </div>
+
+        <!-- Límites -->
+        <div class="dashboard-card">
+          <h3>🛡️ Límites Anti-Ban</h3>
+          <div class="limits-grid">
+            <div class="limit-section">
+              <h4>📱 Instagram</h4>
+              <div class="form-group"><label>Comentarios/día:</label><input type="number" id="lim-ig-comments" class="form-control" value="20"></div>
+              <div class="form-group"><label>DMs/día:</label><input type="number" id="lim-ig-dms" class="form-control" value="20"></div>
+              <div class="form-group"><label>Likes/día:</label><input type="number" id="lim-ig-likes" class="form-control" value="100"></div>
+            </div>
+            <div class="limit-section">
+              <h4>💼 LinkedIn</h4>
+              <div class="form-group"><label>Comentarios/día:</label><input type="number" id="lim-li-comments" class="form-control" value="15"></div>
+              <div class="form-group"><label>Mensajes/día:</label><input type="number" id="lim-li-msgs" class="form-control" value="25"></div>
+              <div class="form-group"><label>Conexiones/día:</label><input type="number" id="lim-li-connections" class="form-control" value="20"></div>
+            </div>
+            <div class="limit-section">
+              <h4>📲 WhatsApp</h4>
+              <div class="form-group"><label>Mensajes/día:</label><input type="number" id="lim-wa-msgs" class="form-control" value="30"></div>
+            </div>
+            <div class="limit-section">
+              <h4>⏱️ Delays</h4>
+              <div class="form-group"><label>Mínimo (seg):</label><input type="number" id="delay-min" class="form-control" value="30"></div>
+              <div class="form-group"><label>Máximo (seg):</label><input type="number" id="delay-max" class="form-control" value="90"></div>
+              <div class="form-group"><label>Pausa cada X acciones:</label><input type="number" id="delay-pause-every" class="form-control" value="10"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="save-config">💾 Guardar Límites</button>
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="dashboard-card">
+          <h3>📲 WhatsApp Web</h3>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="open-whatsapp">📲 Abrir WhatsApp Web</button>
+            <button class="btn btn-secondary" id="extract-wa-direct">📥 Extraer Contactos</button>
+          </div>
+          <div id="wa-direct-status" class="status-text"></div>
+          
+          <div class="help-box">
+            <strong>📋 Pasos:</strong>
+            <ol>
+              <li>Abrí <strong>WhatsApp Web</strong> en otra pestaña</li>
+              <li>Entrá a un <strong>grupo</strong></li>
+              <li>Hacé click en el <strong>nombre del grupo</strong> (arriba)</li>
+              <li>Click en <strong>"X miembros"</strong> para ver la lista</li>
+              <li>Con la lista visible, volvé acá y clickeá "Extraer Contactos"</li>
+            </ol>
+            <p><em>💡 La extensión usa la pestaña de WhatsApp que ya tenés abierta</em></p>
+          </div>
+        </div>
+
+        <!-- Datos -->
+        <div class="dashboard-card">
+          <h3>💾 Gestión de Datos</h3>
+          <div class="form-actions">
+            <button class="btn btn-secondary" id="export-all">📤 Exportar Backup</button>
+            <button class="btn btn-secondary" id="import-all">📥 Importar Backup</button>
+            <button class="btn btn-danger" id="clear-all">🗑️ Borrar Todo</button>
+          </div>
+          <input type="file" id="import-file" accept=".json" style="display:none;">
+        </div>
+      </div>
+
+      <!-- Próximamente -->
+      <div id="view-listening" class="view"><div class="coming-soon-container"><div class="coming-soon-icon">📡</div><h2>Social Listening</h2><div class="coming-soon-badge">🚧 En desarrollo</div></div></div>
+      <div id="view-scheduler" class="view"><div class="coming-soon-container"><div class="coming-soon-icon">📅</div><h2>Scheduler</h2><div class="coming-soon-badge">🚧 En desarrollo</div></div></div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Agregar Persona -->
+  <div id="modal-person" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h3 id="modal-person-title">➕ Agregar Persona</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="person-id">
+        <div class="form-group"><label>Plataforma:</label>
+          <select id="person-platform" class="form-control">
+            <option value="instagram">📱 Instagram</option>
+            <option value="linkedin">💼 LinkedIn</option>
+            <option value="whatsapp">📲 WhatsApp</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Nombre:</label><input type="text" id="person-name" class="form-control"></div>
+        <div class="form-group"><label>Username / Teléfono:</label><input type="text" id="person-username" class="form-control"></div>
+        <div class="form-group"><label>Lista:</label><select id="person-list" class="form-control"></select></div>
+        <div class="form-group"><label>Notas:</label><textarea id="person-notes" class="form-control" rows="3"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary modal-close-btn">Cancelar</button><button class="btn btn-primary" id="save-person">Guardar</button></div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle Persona -->
+  <div id="modal-person-detail" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>👤 <span id="detail-name">Persona</span></h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="person-detail-grid">
+          <div class="person-info-card">
+            <div class="person-avatar" id="detail-avatar">📱</div>
+            <div class="person-main-info">
+              <h4 id="detail-username">@username</h4>
+              <span class="platform-badge" id="detail-platform">instagram</span>
+              <span class="list-badge" id="detail-list">Lista</span>
+            </div>
+            <div class="person-meta">
+              <p><strong>Origen:</strong> <span id="detail-origin">manual</span></p>
+              <p><strong>Fecha:</strong> <span id="detail-date">-</span></p>
+              <p><strong>Link:</strong> <a id="detail-link" href="#" target="_blank">Abrir perfil</a></p>
+            </div>
+            <div class="person-actions-btns">
+              <button class="btn btn-secondary" id="detail-edit">✏️ Editar</button>
+              <button class="btn btn-primary" id="detail-open-profile">🔗 Ver Perfil</button>
+            </div>
+          </div>
+          
+          <!-- CRM Fields -->
+          <div class="person-crm-card">
+            <h4>📋 Datos de Contacto</h4>
+            <div class="form-group">
+              <label>📱 Celular:</label>
+              <input type="text" id="detail-phone" class="form-control" placeholder="+54 11 1234-5678">
+            </div>
+            <div class="form-group">
+              <label>📧 Email:</label>
+              <input type="email" id="detail-email" class="form-control" placeholder="email@ejemplo.com">
+            </div>
+            <div class="form-group">
+              <label>🔗 Otras RRSS:</label>
+              <input type="text" id="detail-other-social" class="form-control" placeholder="Twitter: @user, TikTok: @user">
+            </div>
+            <div class="form-group">
+              <label>💼 Descripción/Bio:</label>
+              <textarea id="detail-bio" class="form-control" rows="2" placeholder="Descripción del perfil..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-small" id="save-crm-fields">💾 Guardar Datos</button>
+          </div>
+          
+          <div class="person-notes-card">
+            <h4>📝 Notas</h4>
+            <textarea id="detail-notes" class="form-control" rows="4" placeholder="Agregá notas sobre esta persona..."></textarea>
+            <button class="btn btn-primary btn-small" id="save-detail-notes">💾 Guardar Notas</button>
+          </div>
+        </div>
+
+        <div class="person-interactions-section">
+          <h4>💬 Historial de Interacciones (<span id="detail-interaction-count">0</span>)</h4>
+          <div id="detail-interactions" class="interactions-list">
+            <p class="empty-state">Sin interacciones registradas.</p>
+          </div>
+        </div>
+
+        <div class="person-add-interaction">
+          <h4>➕ Registrar Interacción Manual</h4>
+          <div class="form-row">
+            <select id="new-interaction-type" class="form-control">
+              <option value="comment">💬 Comentario</option>
+              <option value="dm">✉️ DM</option>
+              <option value="like">❤️ Like</option>
+              <option value="call">📞 Llamada</option>
+              <option value="meeting">🤝 Reunión</option>
+              <option value="note">📝 Nota</option>
+            </select>
+            <input type="text" id="new-interaction-detail" class="form-control flex-1" placeholder="Detalle...">
+            <button class="btn btn-primary" id="add-interaction-btn">➕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Mover a Lista -->
+  <div id="modal-move-list" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h3>📋 Mover a Lista</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <p id="move-count">0 personas seleccionadas</p>
+        <div class="form-group">
+          <label>Nueva lista:</label>
+          <select id="move-target-list" class="form-control"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancelar</button>
+        <button class="btn btn-primary" id="confirm-move">Mover</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Lista -->
+  <div id="modal-list" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h3>➕ Nueva Lista</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Plataforma:</label>
+          <select id="list-platform" class="form-control">
+            <option value="instagram">📱 Instagram</option>
+            <option value="linkedin">💼 LinkedIn</option>
+            <option value="whatsapp">📲 WhatsApp</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Nombre:</label><input type="text" id="list-name" class="form-control" placeholder="Leads Enero"></div>
+        <div class="form-group"><label>Icono:</label><input type="text" id="list-icon" class="form-control" value="📋" style="width:60px;"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary modal-close-btn">Cancelar</button><button class="btn btn-primary" id="save-list">Crear</button></div>
+    </div>
+  </div>
+
+  <!-- Modal: Importar -->
+  <div id="modal-import" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header"><h3>📲 Importar Personas</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <div class="import-options">
+          <div class="import-option" data-type="whatsapp">
+            <span class="import-icon">📲</span>
+            <strong>WhatsApp</strong>
+            <small>Extraer de grupo</small>
+          </div>
+          <div class="import-option" data-type="instagram-followers">
+            <span class="import-icon">👥</span>
+            <strong>IG Seguidores</strong>
+            <small>De una cuenta</small>
+          </div>
+          <div class="import-option" data-type="instagram-post">
+            <span class="import-icon">❤️</span>
+            <strong>IG Post</strong>
+            <small>Likers/Comentadores</small>
+          </div>
+          <div class="import-option" data-type="linkedin-post">
+            <span class="import-icon">💼</span>
+            <strong>LI Post</strong>
+            <small>Reacciones/Comentarios</small>
+          </div>
+          <div class="import-option" data-type="csv">
+            <span class="import-icon">📄</span>
+            <strong>CSV</strong>
+            <small>Subir archivo</small>
+          </div>
+        </div>
+        
+        <!-- WhatsApp Import -->
+        <div id="import-whatsapp" class="import-form" style="display:none;">
+          <h4>📲 Importar desde WhatsApp</h4>
+          <ol class="steps-list">
+            <li>Abrí <a href="https://web.whatsapp.com" target="_blank">WhatsApp Web</a></li>
+            <li>Entrá a un <strong>grupo</strong> y hacé click en el nombre para abrir la info</li>
+            <li>Click en <strong>"X miembros"</strong> para ver la lista completa</li>
+          </ol>
+          <div class="form-group">
+            <label>Agregar a lista:</label>
+            <select id="wa-import-list" class="form-control"></select>
+          </div>
+          <div class="form-row">
+            <label class="checkbox-label"><input type="checkbox" id="wa-generar-csv" checked> Generar CSV</label>
+            <label class="checkbox-label"><input type="checkbox" id="wa-importar-lista" checked> Importar a lista</label>
+          </div>
+          <button class="btn btn-primary" id="extract-whatsapp">📲 Extraer Miembros</button>
+          <div id="wa-status" class="status-text"></div>
+          
+          <div class="help-box-mini">
+            <em>💡 La extensión usa la pestaña de WhatsApp que ya tenés abierta (no abre nueva)</em>
+          </div>
+        </div>
+
+        <!-- IG Post Import -->
+        <div id="import-instagram-post" class="import-form" style="display:none;">
+          <h4>❤️ Importar desde Post de Instagram</h4>
+          <div class="form-group">
+            <label>URL del post:</label>
+            <input type="text" id="ig-post-url" class="form-control" placeholder="https://instagram.com/p/ABC123...">
+          </div>
+          <div class="form-group">
+            <label>Extraer:</label>
+            <select id="ig-post-type" class="form-control">
+              <option value="likers">❤️ Likers</option>
+              <option value="commenters">💬 Comentadores</option>
+              <option value="both">Ambos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Agregar a lista:</label>
+            <select id="ig-post-list" class="form-control"></select>
+          </div>
+          <button class="btn btn-primary" id="extract-ig-post">📥 Extraer</button>
+          <div id="ig-post-status" class="status-text"></div>
+          
+          <div class="help-box-mini">
+            <strong>📋 Pasos:</strong> Copiá la URL del post → Pegala arriba → Click "Extraer"<br>
+            <em>⚠️ Alternativa: Usá "Extraer del Post Actual" en Analyzer si tenés el post abierto</em>
+          </div>
+        </div>
+
+        <!-- IG Followers Import -->
+        <div id="import-instagram-followers" class="import-form" style="display:none;">
+          <h4>👥 Importar Seguidores de Instagram</h4>
+          <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="ig-followers-username" class="form-control" placeholder="garyvee">
+          </div>
+          <div class="form-group">
+            <label>Cantidad máxima:</label>
+            <input type="number" id="ig-followers-max" class="form-control" value="50" min="10" max="500">
+          </div>
+          <div class="form-group">
+            <label>Agregar a lista:</label>
+            <select id="ig-followers-list" class="form-control"></select>
+          </div>
+          <button class="btn btn-primary" id="extract-ig-followers">📥 Extraer</button>
+          <div id="ig-followers-status" class="status-text"></div>
+          
+          <div class="help-box-mini">
+            <strong>📋 Pasos:</strong> Escribí el username (sin @) → Elegí cantidad → Click "Extraer"<br>
+            <em>💡 La extensión abre el perfil, extrae seguidores y cierra la pestaña</em>
+          </div>
+        </div>
+
+        <!-- LinkedIn Post Import -->
+        <div id="import-linkedin-post" class="import-form" style="display:none;">
+          <h4>💼 Importar desde Post de LinkedIn</h4>
+          <div class="form-group">
+            <label>URL del post:</label>
+            <input type="text" id="li-post-url" class="form-control" placeholder="https://linkedin.com/feed/update/...">
+          </div>
+          <div class="form-group">
+            <label>Extraer:</label>
+            <select id="li-post-type" class="form-control">
+              <option value="reactions">👍 Reacciones</option>
+              <option value="comments">💬 Comentarios</option>
+              <option value="both">Ambos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Agregar a lista:</label>
+            <select id="li-post-list" class="form-control"></select>
+          </div>
+          <button class="btn btn-primary" id="extract-li-post">📥 Extraer</button>
+          <div id="li-post-status" class="status-text"></div>
+          
+          <div class="help-box-mini">
+            <strong>📋 Pasos:</strong> Copiá la URL del post de LinkedIn → Pegala arriba → Click "Extraer"<br>
+            <em>💡 La extensión abre una pestaña, extrae los datos y la cierra automáticamente</em>
+          </div>
+        </div>
+
+        <!-- CSV Import -->
+        <div id="import-csv" class="import-form" style="display:none;">
+          <h4>📄 Importar CSV</h4>
+          <p>Columnas: nombre, username, plataforma (opcional)</p>
+          <div class="form-group"><label>Archivo:</label><input type="file" id="csv-file" accept=".csv"></div>
+          <div class="form-group"><label>Agregar a lista:</label><select id="csv-import-list" class="form-control"></select></div>
+          <button class="btn btn-primary" id="process-csv">📥 Procesar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="dashboard.js"></script>
+</body>
+</html>
